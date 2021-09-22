@@ -171,7 +171,7 @@ int main(void) {
 * 运行
 
   ```sh
-  $ cd 2020fall-Compiler_CMinus
+  $ cd 2021fall-Compiler_CMinus
   # 词法测试
   $ ./build/lexer ./tests/parser/normal/local-decl.cminus
   Token	      Text	Line	Column (Start,End)
@@ -193,7 +193,7 @@ int main(void) {
   可以使用 `diff` 与标准输出进行比较。
 
   ```sh
-  $ cd 2020fall-Compiler_CMinus
+  $ cd 2021fall-Compiler_CMinus
   $ export PATH="$(realpath ./build):$PATH"
   $ cd tests/parser
   $ mkdir output.easy
