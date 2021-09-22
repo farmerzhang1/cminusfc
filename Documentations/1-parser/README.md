@@ -173,7 +173,7 @@ int main(void) {
   ```sh
   $ cd 2020fall-Compiler_CMinus
   # 词法测试
-  $ ./build/lexer ./tests/parser/easy/local-decl.cminus
+  $ ./build/lexer ./tests/parser/normal/local-decl.cminus
   Token	      Text	Line	Column (Start,End)
   280  	       int	0	(0,3)
   284  	      main	0	(4,8)
@@ -182,7 +182,7 @@ int main(void) {
   273  	         )	0	(13,14)
   ...
   # 语法测试
-  $ ./build/parser ./tests/parser/easy/local-decl.cminus
+  $ ./build/parser ./tests/parser/normal/local-decl.cminus
   >--+ program
   |  >--+ declaration-list
   |  |  >--+ declaration
@@ -194,11 +194,11 @@ int main(void) {
 
   ```sh
   $ cd 2020fall-Compiler_CMinus
-  $ export PATH=$(realpath ./build)
+  $ export PATH="$(realpath ./build):$PATH"
   $ cd tests/parser
   $ mkdir output.easy
-  $ parser easy/array.cminus > output.easy/array.cminus
-  $ diff output.easy/array.cminus syntree_easy_std/array.syntax_tree
+  $ parser easy/expr.cminus > output.easy/expr.cminus
+  $ diff output.easy/expr.cminus syntree_easy_std/expr.syntax_tree
   [输出为空，代表没有区别，该测试通过]
   ```
 
@@ -209,7 +209,7 @@ int main(void) {
   [info] Analyzing FAIL_id.cminus
   error at line 1 column 6: syntax error
   ...
-  [info] Analyzing local-decl.cminus
+  [info] Analyzing id.cminus
   
   $ ./test_syntax.sh easy yes
   ...
