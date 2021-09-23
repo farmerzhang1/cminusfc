@@ -25,20 +25,33 @@ syntax_tree *gt;
 void yyerror(const char *s);
 
 // Helper functions written for you with love
+// ! (love u zevin)
 syntax_tree_node *node(const char *node_name, int children_num, ...);
 %}
 
 /* TODO: Complete this definition.
    Hint: See pass_node(), node(), and syntax_tree.h.
          Use forward declaring. */
-%union {}
+%union {
+    // char* op; // might be '<='
+    // int integer;
+    // double double_num;
+    // char* identifier;
+    syntax_tree_node* node;
+}
 
 /* TODO: Your tokens here. */
-%token <node> ERROR
-%token <node> ADD
-%type <node> program
 
-%start program
+%token <node> ID
+%token <node> INT_T VOID_T FLOAT_T
+%token <node> LE LT GT GE EQ NEQ // rel op
+%token <node> ADD MINUS // add op
+%token <node> MUL DIV // mul op
+%token <node> LPAREN RPAREN
+%token <node> INTEGER
+%token <node> FLOATPOINT
+
+%start simple_expression
 
 %%
 /* TODO: Your rules here. */
@@ -48,7 +61,22 @@ program: declaration-list {$$ = node( "program", 1, $1); gt->root = $$;}
        ;
 */
 
-program : ;
+/* program: declaration-list; */
+relop: LE LT GT GE EQ NEQ
+addop: ADD MINUS
+mulop: MUL DIV
+simple_expression: additive_expression relop additive_expression {}
+    | additive_expression {}
+additive_expression: additive_expression addop term {}
+    | term {}
+term: term mulop factor {}
+    | factor {}
+factor: LPAREN simple_expression RPAREN {}
+    |   integer {}
+    |   float {}
+integer: INTEGER
+float: FLOATPOINT
+
 
 %%
 
