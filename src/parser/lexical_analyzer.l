@@ -19,20 +19,20 @@ void pass_node(char *text) {
 /*****************声明和选项设置  end*****************/
 %}
 
-%%
 /* to do for students */
 /* two cases for you, pass_node will send flex's token to bison */
 
 /* no map or dict in c, so we have to write one by one */
+%%
 \+   { pos_start = pos_end; pos_end += 1; pass_node (yytext); return ADD; }
 -    { pos_start = pos_end; pos_end += 1; pass_node (yytext); return MINUS; }
 \*   { pos_start = pos_end; pos_end += 1; pass_node (yytext); return MUL; }
-/    { pos_start = pos_end; pos_end += 1; pass_node (yytext); return DIV; }
+\/    { pos_start = pos_end; pos_end += 1; pass_node (yytext); return DIV; }
 "<=" { pos_start = pos_end; pos_end += 2; pass_node (yytext); return LE; }
 ">=" { pos_start = pos_end; pos_end += 2; pass_node (yytext); return GE; }
 "==" { pos_start = pos_end; pos_end += 2; pass_node (yytext); return EQ; }
 "!=" { pos_start = pos_end; pos_end += 2; pass_node (yytext); return NEQ; }
-<    { pos_start = pos_end; pos_end += 1; pass_node (yytext); return LT; }
+\<    { pos_start = pos_end; pos_end += 1; pass_node (yytext); return LT; }
 >    { pos_start = pos_end; pos_end += 1; pass_node (yytext); return GT; }
 \(   { pos_start = pos_end; pos_end += 1; pass_node (yytext); return LPAREN; }
 \)   { pos_start = pos_end; pos_end += 1; pass_node (yytext); return RPAREN; }
@@ -50,5 +50,5 @@ float { pos_start = pos_end; pos_end += 5; pass_node (yytext); return FLOAT_T; }
 
 . { pos_start = pos_end; pos_end++; }
 
-/****请在此补全所有flex的模式与动作  end******/
 %%
+/****请在此补全所有flex的模式与动作  end******/
