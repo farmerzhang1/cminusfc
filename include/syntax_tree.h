@@ -10,7 +10,7 @@ struct _syntax_tree_node {
 	struct _syntax_tree_node * children[10];
 	int children_num;
 
-	char name[SYNTAX_TREE_NODE_NAME_MAX];
+	char name[SYNTAX_TREE_NODE_NAME_MAX]; // 居然只能用 name 来表示 ((((
 };
 typedef struct _syntax_tree_node syntax_tree_node;
 
