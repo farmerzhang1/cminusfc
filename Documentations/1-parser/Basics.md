@@ -167,7 +167,7 @@ int words = 0;
 int main(int argc, char **argv){
     // yylex()是flex提供的词法分析例程，调用yylex()即开始执行Flex的词法分析，同样的yylex()也是flex自行生成的，无需额外定义和生成，默认输入读取stdin
     // 如果不清楚什么是stdin，可以自己百度查一下
-    yylex();                                  
+    yylex();
     // 输出 words和chars，这些变量在匹配过程中，被执行相应的动作
     printf("look, I find %d words of %d chars\n", words, chars);
     return 0;
@@ -177,9 +177,9 @@ int main(int argc, char **argv){
 使用Flex生成lex.yy.c
 
 ```shell
-$ flex wc.l 
+$ flex wc.l
 $ gcc lex.yy.c
-$ ./a.out 
+$ ./a.out
 hello world
 ^D
 look, I find 2 words of 10 chars
@@ -223,7 +223,7 @@ void yyerror(const char *s);
 reimu : marisa { /* 这里写与该规则对应的处理代码 */ puts("rule1"); }
       | REIMU  { /* 这里写与该规则对应的处理代码 */ puts("rule2"); }
       ; /* 规则最后不要忘了用分号结束哦～ */
-      
+
 /* 这种写法表示 ε —— 空输入 */
 marisa : { puts("Hello!"); }
 
@@ -233,7 +233,7 @@ marisa : { puts("Hello!"); }
 
 int yylex(void)
 {
-    int c = getchar(); // 从 stdin 获取下一个字符 
+    int c = getchar(); // 从 stdin 获取下一个字符
     switch (c) {
     case EOF: return YYEOF;
     case 'R': return REIMU;
@@ -320,7 +320,7 @@ line
     printf(" = %f\n", $1);
 }
 
-expr 
+expr
 : term
 {
     $$ = $1;
@@ -401,7 +401,7 @@ int main()
 使用如下命令构建并测试程序：
 
 ```shell
-$ bison -d calc.y 
+$ bison -d calc.y
    (生成 calc.tab.c 和 calc.tab.h。如果不给出 -d 参数，则不会生成 .h 文件。)
 $ flex calc.l
    (生成 lex.yy.c)
@@ -425,16 +425,16 @@ $ ./calc
     double num;
   }
   ```
-  
+
   会生成类似这样的代码
-  
+
   ```c
   typedef union YYSTYPE {
     char op;
     double num;
   } YYSTYPE;
   ```
-  
+
   为什么使用 `union` 呢？因为不同节点可能需要不同类型的语义值。比如，上面的例子中，我们希望 `ADDOP` 的值是 `char` 类型，而 `NUMBER` 应该是 `double` 类型的。
 
 * `$$` 和 `$1`, `$2`, `$3`, ...：现在我们来看如何从已有的值推出当前节点归约后应有的值。以加法为例：
@@ -448,19 +448,19 @@ $ ./calc
           }
        }
   ```
-  
+
   其实很好理解。当前节点使用 `$$` 代表，而已解析的节点则是从左到右依次编号，称作 `$1`, `$2`, `$3`...
-  
+
 * `%type <>` 和 `%token <>`：注意，我们上面可没有写 `$1.num` 或者 `$2.op` 哦！那么 bison 是怎么知道应该用 `union` 的哪部分值的呢？其秘诀就在文件一开始的 `%type` 和 `%token` 上。
 
   例如，`term` 应该使用 `num` 部分，那么我们就写
-  
+
   ```c
   %type <num> term
   ```
-  
+
   这样，以后用 `$` 去取某个值的时候，bison 就能自动生成类似 `stack[i].num` 这样的代码了。
-  
+
   `%token<>` 见下一条。
 
 * `%token`：当我们用 `%token` 声明一个 token 时，这个 token 就会导出到 `.h` 中，可以在 C 代码中直接使用（注意 token 名千万不要和别的东西冲突！），供 flex 使用。`%token <op> ADDOP` 与之类似，但顺便也将 `ADDOP` 传递给 `%type`，这样一行代码相当于两行代码，岂不是很赚。

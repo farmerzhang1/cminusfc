@@ -11,7 +11,7 @@ int lines;
 int pos_start;
 int pos_end;
 
-void pass_node(char *text){
+void pass_node(char *text) {
      yylval.node = new_syntax_tree_node(text);
 }
 
