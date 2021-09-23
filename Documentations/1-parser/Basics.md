@@ -41,7 +41,6 @@
 我们将 Cminus-f 的所有规则分为五类。
 
 1. 字面量、关键字、运算符与标识符
-   - `id`
    - `type-specifier`
    - `relop`
    - `addop`
@@ -62,6 +61,7 @@
    - `return-stmt`
 4. 表达式
    - `expression`
+   - `simple-expression`
    - `var`
    - `additive-expression`
    - `term`
@@ -237,7 +237,7 @@ int yylex(void)
     switch (c) {
     case EOF: return YYEOF;
     case 'R': return REIMU;
-    default:  return 0;     // 返回无效 token 值，迫使 bison 报错
+    default:  return YYUNDEF;     // 报告 token 未定义，迫使 bison 报错
     }
 }
 
