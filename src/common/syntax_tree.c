@@ -18,6 +18,7 @@ int syntax_tree_add_child(syntax_tree_node * parent, syntax_tree_node * child)
 {
 	if (!parent || !child)	return -1;
 	parent->children[parent->children_num++] = child;
+	child->parent = parent;
 	return parent->children_num;
 }
 
@@ -52,10 +53,10 @@ void del_syntax_tree(syntax_tree * tree)
 void print_syntax_tree_node(FILE * fout, syntax_tree_node * node, int level)
 {
 	// assume fout valid now
-	
+
 	// check if "node" empty pointer
 	if (!node)	return;
-	
+
 	// print myself
 	int i;
 	for (i = 0; i < level; i++) {
@@ -71,7 +72,7 @@ void print_syntax_tree_node(FILE * fout, syntax_tree_node * node, int level)
 void print_syntax_tree(FILE * fout, syntax_tree * tree)
 {
 	if (!fout)	return;
-	
+
 	print_syntax_tree_node(fout, tree->root, 0);
 }
 
