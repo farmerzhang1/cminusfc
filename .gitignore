@@ -1,3 +1,6 @@
 build/
 labs/
-*.tab.*
+*.tab.c
+*.tab.h
+lex.yy.c
+.vscode/
