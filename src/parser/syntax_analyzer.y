@@ -76,29 +76,75 @@ syntax_tree_node *node(const char *node_name, int children_num, ...);
 program: declaration_list {$$ = node( "program", 1, $1); gt->root = $$;}
        ;
 */
-// to match any '_' not inside double quotes
 
-program: declaration_list {$$ = node( "program", 1, $1); gt->root = $$;};
-declaration_list: declaration_list declaration | declaration
-declaration: var_declaration | fun_declaration
-var_declaration: type_specifier ID | type_specifier ID LBRACKET INTEGER RBRACKET
-type_specifier: INT_T {$$ = yylval.node;} | VOID_T {$$ = yylval.node;} | FLOAT_T {$$ = yylval.node;}
-fun_declaration:type_specifier ID LPAREN params RPAREN compound_stmt
-params: param_list | VOID_T
-param_list: param_list COLON param | param
-param:type_specifier   ID | type_specifier ID LBRACKET INTEGER RBRACKET
-compound_stmt:  LCURLY local_declarations statement_list RCURLY
-local_declarations:local_declarations var_declaration | %empty
-statement_list:statement_list statement | %empty
-statement: expression_stmt | compound_stmt | selection_stmt | iteration_stmt | return_stmt
-expression_stmt:expression   SEMICOLON | SEMICOLON
-selection_stmt: IF LPAREN expression RPAREN statement |   IF LPAREN expression RPAREN statement ELSE statement
-iteration_stmt:  WHILE LPAREN expression RPAREN statement
-return_stmt:  RETURN SEMICOLON | RETURN expression SEMICOLON
-expression: var ASSIGN expression | simple_expression
-var: ID | ID LBRACKET expression RBRACKET
-simple_expression: additive_expression relop additive_expression {     $$ = node ("simple-expression", 3, $1, $2, $3);     gt->root = $$; } | additive_expression {     $$ = node ("simple-expression", 1, $1);     gt->root = $$; }
-relop: LE {$$ = yylval.node;} | LT {$$ = yylval.node;} | GT {$$ = yylval.node;} | GE {$$ = yylval.node;} | EQ {$$ = yylval.node;} | NEQ {$$ = yylval.node;}
+program: declaration_list {$$ = node("program", 1, $1); gt->root = $$;};
+declaration_list:
+declaration_list declaration {
+    $$ = node ("declaration-list", 2, $1, $2);
+}
+| declaration {
+    $$ = node ("declaration-list", 1, $1);
+}
+declaration: var_declaration { $$ = node ("declaration", 1, $1); } | fun_declaration { $$ = node ("declaration", 1, $1); }
+var_declaration: type_specifier ID SEMICOLON {
+    $$ = node ("var-declaration", 2, $1, $2);
+} | type_specifier ID LBRACKET INTEGER RBRACKET SEMICOLON {
+    $$ = node ("var-declaration", 6, $1, $2, $3, $4, $5, $6);
+}
+type_specifier: INT_T { $$ = node ("type-specifier", 1, $1); } | VOID_T {$$ = node ("type-specifier", 1, $1);} | FLOAT_T {$$ = node ("type-specifier", 1, $1);}
+fun_declaration: type_specifier ID LPAREN params RPAREN compound_stmt {
+    $$ = node ("fun-declaration", 6, $1, $2, $3, $4, $5, $6);
+}
+params: param_list { $$ = node ("params", 1, $1); } | VOID_T { $$ = node ("params", 1, $1); }
+param_list: param_list COLON param {
+    $$ = node ("param-list", 3, $1, $2, $3);
+} | param { $$ = node ("param-list", 1, $1); }
+param: type_specifier ID {
+    $$ = node ("param", 2, $1, $2);
+} | type_specifier ID LBRACKET RBRACKET {
+    $$ = node ("param", 4, $1, $2, $3, $4);
+}
+compound_stmt: LCURLY local_declarations statement_list RCURLY {
+    $$ = node ("compound-list", 4, $1, $2, $3, $4);
+}
+local_declarations: local_declarations var_declaration {
+    $$ = node ("local-declaration", 2, $1, $2);
+} | %empty { $$ = node ("local-declaration", 1, node ("epsilon", 0)); }
+statement_list:statement_list statement {
+    $$ = node ("statement-list", 2, $1, $2);
+} | %empty { $$ = node ("statement-list", 1, node ("epsilon", 0)); }
+statement: expression_stmt { $$ = node ("statement", 1, $1); }
+| compound_stmt     { $$ = node ("statement", 1, $1); }
+| selection_stmt    { $$ = node ("statement", 1, $1); }
+| iteration_stmt    { $$ = node ("statement", 1, $1); }
+| return_stmt       { $$ = node ("statement", 1, $1); }
+expression_stmt: expression SEMICOLON { $$ = node ("expression-statement", 1, $1); }
+| SEMICOLON { $$ = node ("expression-statement", 1, $1); }
+selection_stmt: IF LPAREN expression RPAREN statement {
+    $$ = node ("selection-stmt", 5, $1, $2, $3, $4, $5);
+} | IF LPAREN expression RPAREN statement ELSE statement {
+    $$ = node ("selection-stmt", 7, $1, $2, $3, $4, $5, $6, $7);
+}
+iteration_stmt: WHILE LPAREN expression RPAREN statement {
+    $$ = node ("iteration-stmt", 5, $1, $2, $3, $4, $5);
+}
+return_stmt:  RETURN SEMICOLON {
+    $$ = node ("return-stmt", 0);
+} | RETURN expression SEMICOLON {
+    $$ = node ("return-stmt", 1, $2);
+}
+expression: var ASSIGN expression {
+    $$ = node ("expression", 3, $1, $2, $3);
+} | simple_expression { $$ = node ("expression", 1, $1); }
+var: ID {
+    $$ = node ("var", 1, $1);
+} | ID LBRACKET expression RBRACKET {
+    $$ = node ("var", 4, $1, $2, $3, $4);
+}
+simple_expression:
+additive_expression relop additive_expression { $$ = node ("simple-expression", 3, $1, $2, $3); }
+| additive_expression { $$ = node ("simple-expression", 1, $1); }
+relop: LE {$$ = $1;} | LT {$$ = $1;} | GT {$$ = $1;} | GE {$$ = $1;} | EQ {$$ = $1;} | NEQ {$$ = $1;}
 additive_expression:
 additive_expression addop term {
     $$ = node ("additive-expression", 3, $1, $2, $3);
@@ -106,7 +152,7 @@ additive_expression addop term {
 | term {
     $$ = node ("additive-expression", 1, $1);
 }
-addop: ADD {$$ = yylval.node;} | MINUS {$$ = yylval.node;}
+addop: ADD {$$ = $1;} | MINUS {$$ = $1;}
 term:
 term mulop factor {
     $$ = node ("term", 3, $1, $2, $3);
@@ -114,24 +160,30 @@ term mulop factor {
 | factor {
     $$ = node ("term", 1, $1);
 }
-mulop: MUL {$$ = yylval.node;} | DIV {$$ = yylval.node;}
+mulop: MUL {$$ = $1;} | DIV {$$ = $1;}
 factor:
 LPAREN simple_expression RPAREN {
     $$ = node ("factor", 3, $1, $2, $3);
 }
-| var
-| call
+| var {$$ = node ("factor", 1, $1);}
+| call {$$ = node ("factor", 1, $1);}
 | integer {
     $$ = node ("factor", 1, $1);
 }
 | float {
     $$ = node ("factor", 1, $1);
 }
-integer: INTEGER {$$ = yylval.node;}
-float: FLOATPOINT {$$ = yylval.node;}
-call: ID LPAREN args RPAREN
-args: arg_list | %empty
-arg_list: arg_list COLON expression | expression
+integer: INTEGER { $$ = $1; }
+float: FLOATPOINT { $$ = $1; }
+call: ID LPAREN args RPAREN {
+    $$ = node ("call", 4, $1, $2, $3, $4);
+}
+args: arg_list {
+    $$ = node ("args", 1, $1);
+} | %empty { $$ = node ("arg-list", 1, node ("epsilon", 0)); }
+arg_list: arg_list COLON expression {
+    $$ = node ("arg-list", 3, $1, $2, $3);
+} | expression {$$ = node ("arg-list", 1, $1);}
 
 
 %%
