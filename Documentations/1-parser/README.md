@@ -210,7 +210,7 @@ int main(void) {
   error at line 1 column 6: syntax error
   ...
   [info] Analyzing id.cminus
-  
+
   $ ./test_syntax.sh easy yes
   ...
   [info] Comparing...
@@ -251,8 +251,8 @@ int main(void) {
     * x 为相对 Soft Deadline 迟交天数，grade 满分 10
 
       ```
-      final_grade = grade, x = 0  
-      final_grade = grade * (0.9)^x, 0 < x <= 7  
+      final_grade = grade, x = 0
+      final_grade = grade * (0.9)^x, 0 < x <= 7
       final_grade = 0, x > 7
       ```
 

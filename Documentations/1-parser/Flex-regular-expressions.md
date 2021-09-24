@@ -1,6 +1,6 @@
 ## Flex regular expressions
 
-This document is from `The flex Manual`. For better experience, we recommend you to read the original documents.  `The flex Manual` can be read with `info flex` in terminal. 
+This document is from `The flex Manual`. For better experience, we recommend you to read the original documents.  `The flex Manual` can be read with `info flex` in terminal.
 
 ```shell
 $ info flex
@@ -95,11 +95,11 @@ The patterns in the input  are written using an extended set of regular expressi
 
 * `(?r-s:pattern)`
 
-   apply option `r` and omit option `s` while interpreting pattern. Options may be zero or more of the characters `i`, `s`, or `x`. 
+   apply option `r` and omit option `s` while interpreting pattern. Options may be zero or more of the characters `i`, `s`, or `x`.
 
    `i` means case-insensitive. `-i` means case-sensitive.
 
-   `s` alters the meaning of the `.` syntax to match any single byte whatsoever. `-s` alters the meaning of `.` to match any byte except `\n`. 
+   `s` alters the meaning of the `.` syntax to match any single byte whatsoever. `-s` alters the meaning of `.` to match any byte except `\n`.
 
    `x` ignores comments and whitespace in patterns. Whitespace is ignored unless it is backslash-escaped, contained within `""`s, or appears inside a character class.
 
@@ -129,9 +129,9 @@ The patterns in the input  are written using an extended set of regular expressi
      (?x:a
      	/* comment */
      	b
-     	c) 
+     	c)
      ```
-   
+
      same as `(abc)`
 
 * `(?# comment )`
@@ -183,8 +183,8 @@ The patterns in the input  are written using an extended set of regular expressi
 * `<s1,s2><<EOF>>`
 
    an end-of-file when in start condition `s1` or `s2`
-   
-   
+
+
 
 Note that inside of a character class, all regular expression operators lose their special meaning except escape (`\`) and the character class operators, `-`, `]]`, and, at the beginning of the class, `^`.
 
@@ -227,7 +227,7 @@ A word of caution. Character classes are expanded immediately when seen in the `
 
    `[:upper:]` and `[:lower:]` are equivalent to `[:alpha:]`.
 
-   
+
 
 * Character classes with ranges, such as `[a-Z]`, should be used with caution in a case-insensitive scanner if the range spans upper or lowercase characters. Flex does not know if you want to fold all upper and lowercase characters together, or if you want the literal numeric range specified (with no case folding). When in doubt, flex will assume that you meant the literal numeric range, and will issue a warning. The exception to this rule is a character range such as `[a-z]` or `[S-W]` where it is obvious that you want case-folding to occur. Here are some examples with the `-i` flag enabled:
 
@@ -239,7 +239,7 @@ A word of caution. Character classes are expanded immediately when seen in the `
    | `[_-{]` | ambiguous | `[_'a-z{]`         | `[_'a-zA-Z{]`       |
    | `[@-C]` | ambiguous | `[@ABC]`           | `[@A-Z\[\\\]_'abc]` |
 
-   
+
 
 * A negated character class such as the example `[^A-Z]` above _will_ match a newline unless `\n` (or an equivalent escape sequence) is one of the characters explicitly present in the negated character class (e.g., `[^A-Z\n]`). This is unlike how many other regular expression tools treat negated character classes, but unfortunately the inconsistency is historically entrenched. Matching newlines means that a pattern like `[^"]*` can match the entire input unless there`s another quote in the input.
 
@@ -252,7 +252,7 @@ A word of caution. Character classes are expanded immediately when seen in the `
    `[:^lower:]`  `[:^print:]`  `[:^punct:]`
 
    `[:^space:]`  `[:^upper:]`  `[:^xdigit:]`
-   
+
    Flex will issue a warning if the expressions `[:^upper:]` and`[:^lower:]` appear in a case-insensitive scanner, since their meaning is unclear. The current behavior is to skip them entirely, but this may change without notice in future revisions of flex.
 
 
@@ -264,11 +264,11 @@ A word of caution. Character classes are expanded immediately when seen in the `
 
 * The `{+}` operator computes the union of two character classes. For example, `[a-z]{+}[0-9]` is the same as `[a-z0-9]`. This operator is useful when preceded by the result of a difference operation, as in, `[[:alpha:]]{-}[[:lower:]]{+}[q]`, which is equivalent to `[A-Zq]` in the "C" locale.
 
-  
+
 
 * A rule can have at most one instance of trailing context (the `/` operator or the `$` operator). The start condition, `^`, and `<<EOF>>` patterns can only occur at the beginning of a pattern, and, as well as with `/` and `$`, cannot be grouped inside parentheses. A `^` which does not occur at the beginning of a rule or a `$` which does not occur at the end of a rule loses its special properties and is treated as a normal character.
 
-  
+
 
 * The following are invalid:
 
@@ -278,7 +278,7 @@ A word of caution. Character classes are expanded immediately when seen in the `
 
   Note that the first of these can be written `foo/bar\n`.
 
-  
+
 
 * The following will result in `$` or `^` being treated as a normal character:
 
@@ -294,16 +294,3 @@ A word of caution. Character classes are expanded immediately when seen in the `
   ```
 
   A similar trick will work for matching a `foo` or a `bar`-at-the-beginning-of-a-line.
-
-
-
-
-
-
-
-
-
-
-
-
-

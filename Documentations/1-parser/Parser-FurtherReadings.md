@@ -60,7 +60,7 @@ identifier("abc123") ==> (Some("abc123"), "")  这里返回的是字符串 "abc1
 
 那么就可以定义
 ```
-factor = or( 
+factor = or(
   seq(number,identifier).map { Expr.Mul(Expr.Const(#1), Expr.Val(#2)) },
   number.map(Expr.Const)
 )
