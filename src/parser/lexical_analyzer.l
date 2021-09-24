@@ -12,7 +12,7 @@ int lines = 1;
 int pos_start = 0;
 int pos_end = 0;
 
-void pass_node(char *text) {
+void pass_node(const char *text) {
      yylval.node = new_syntax_tree_node(text);
 }
 
@@ -63,15 +63,19 @@ void routine (const char* yytext) {
 int  { routine (yytext); return INT_T; }
 void { routine (yytext); return VOID_T; }
 float { routine (yytext); return FLOAT_T; }
-[a-z_][a-z_0-9]* {
+if   { routine (yytext); return IF; }
+else { routine (yytext); return ELSE; }
+while { routine (yytext); return WHILE; }
+return { routine (yytext); return RETURN; }
+[a-zA-Z]+ {
      routine (yytext);
      return ID;
 }
-([1-9][0-9]+|[0-9])\.[0-9]+ {
+([0-9]+\.|[0-9]*\.[0-9]+) {
      routine (yytext);
      return FLOATPOINT;
 }
-[0-9]|([1-9][0-9]+) {
+[0-9]+ {
      routine (yytext);
      return INTEGER;
 }
