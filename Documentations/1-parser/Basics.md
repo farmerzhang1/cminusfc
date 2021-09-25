@@ -237,7 +237,8 @@ int yylex(void)
     switch (c) {
     case EOF: return YYEOF;
     case 'R': return REIMU;
-    default:  return YYUNDEF;     // 报告 token 未定义，迫使 bison 报错
+    default:  return YYUNDEF;     // 报告 token 未定义，迫使 bison 报错。
+    // 由于 bison 不同版本有不同的定义。如果这里 YYUNDEF 未定义，请尝试 YYUNDEFTOK 或使用一个随意的整数，如 114514 或 19260817。
     }
 }
 
