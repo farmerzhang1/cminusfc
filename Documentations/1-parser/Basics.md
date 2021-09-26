@@ -409,7 +409,7 @@ $ flex calc.l
 $ gcc lex.yy.c calc.tab.c driver.c -o calc
 $ ./calc
 1+1
- = 1.000000
+ = 2.000000
 2*(1+1)
  = 4.000000
 2*1+1
