@@ -119,7 +119,7 @@ AST::transform_node_iter(syntax_tree_node *n) {
         else
             node->type = TYPE_FLOAT;
         node->id = n->children[1]->name;
-        if (n->children_num == 3)
+        if (n->children_num > 2)
             node->isarray = true;
         return node;
     } else if (_STR_EQ(n->name, "compound-stmt")) {
