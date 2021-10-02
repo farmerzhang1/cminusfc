@@ -4,9 +4,11 @@
 姓名 ***
 
 ## 实验要求
+完成cminus的语法分析
 
+(本此实验使用clang-10(gcc 9.3经测试也可以))
 ## 实验难点
-1. %union编译
+1. %union
 
     需要在bison中利用以下directive（复制该段代码至`*.tab.h`和`*.tab.c`中），才能使生成的头文件中的token编译
     ```bison
@@ -73,14 +75,44 @@ void routine (const char* yytext) {
 另外，本想使用`std::map`将字符串与bison生成的enum一一对应，但是这里使用的是c语言。就此作罢。
 ### 语法分析
 将`Basics.md`里的语法全部复制进去，加入不同的action就可以了。
+```bison
+declaration_list:
+declaration_list declaration {
+    $$ = node ("declaration-list", 2, $1, $2);
+}
+| declaration {
+    $$ = node ("declaration-list", 1, $1);
+}
 
-几处需要注意的地方：空语句也需要调用node函数（传入的参数为0），并且最好使用`%empty`，方便查看。
+```
+
+几处需要注意的地方：空语句也需要调用node函数（传入的参数`children_num`为0），并且最好使用`%empty`，方便查看。
 ```bison
 %empty { $$ = node ("local-declarations", 0); }
 ```
 ## 实验结果验证
+运行测试脚本
+```
+tests/parser/test_syntax.sh easy verbose
+tests/parser/test_syntax.sh normal verbose
+tests/parser/test_syntax.sh hard verbose
+```
+全部通过。
 
-请提供部分自行设计的测试
+### 自行测试
+```
+int/* no ma_in*/ main (float f/**/) {
+    int i/* // this is /*comment
+    */;
+    int j;
+    j = i /*this is wrong, can't have rvalue to be assigned = i+j*/ = i / j + j * 2/3;
+    if (i > 0)
+        if (i == 100) i = 0;
+        else; else;
+    if (1.8 /* ?? really strange */);
+    if (i = 0 /* good old bug */);
+}
+```
 
 ## 实验反馈
 挺简单的
