@@ -8,6 +8,7 @@
 
 // external functions from lex
 extern int yylex();
+extern int yylex_destroy();
 extern int yyparse();
 extern int yyrestart();
 extern FILE * yyin;
@@ -215,6 +216,8 @@ syntax_tree *parse(const char *input_path)
     gt = new_syntax_tree();
     yyrestart(yyin);
     yyparse();
+    fclose(yyin);
+    yylex_destroy();
     return gt;
 }
 
