@@ -24,13 +24,13 @@ void comments (const char* str) {
      pos_start = pos_end;
      while (*str) { // 太久没写c了！！
           if (*str == '\n') new_line();
-          pos_end++;
+          else pos_end++;
           str++;
      }
 }
 
 void routine (const char* yytext) {
-     pos_start = pos_end; pos_end += 1; pass_node (yytext);
+     pos_start = pos_end; pos_end += strlen(yytext); pass_node (yytext);
 }
 /*****************声明和选项设置  end*****************/
 %}
@@ -79,8 +79,8 @@ return { routine (yytext); return RETURN; }
      routine (yytext);
      return INTEGER;
 }
-\/\*(.|\n)*?\*\/ { comments (yytext); }
-[ \t] { pos_start = pos_end; pos_end += strlen(yytext); }
+\/\*([^*]|[\r\n]|(\*+([^*/]|[\r\n])))*\*+\/ { comments (yytext); }
+[ \t\r] { pos_start = pos_end; pos_end += strlen(yytext); }
 . { pos_start = pos_end; pos_end++; printf("'.' :\t%s\n",yytext); }
 
 %%
