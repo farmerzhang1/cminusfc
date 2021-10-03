@@ -12,7 +12,7 @@
 In brief, you need another alias for upstream repository (we assume you are now in your local copy of forked repository on Gitlab):
 
 ```shell
-$ git remote add upstream http://211.86.152.198//staff/2021fall-compiler_cminus.git
+$ git remote add upstream http://211.86.152.198:8080/staff/2021fall-compiler_cminus.git
 ```
 
 Then try to merge remote commits to your local repository:
