@@ -15,7 +15,7 @@
 ### 词法分析
 阅读代码发现`%union`只需一个类型`syntax_tree_node*`
 
-需要在bison中利用以下directive（可以代码段至`*.tab.h`和`*.tab.c`中），才能使生成的头文件中的token编译
+需要在bison中利用以下directive（可以复制代码段至`*.tab.h`和`*.tab.c`中），才能使生成的头文件中的token编译
 ```c
 %code requires {
 #include "syntax_tree.h"
