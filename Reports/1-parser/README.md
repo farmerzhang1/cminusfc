@@ -8,24 +8,18 @@
 
 (本此实验使用clang-10(gcc 9.3经测试也可以))
 ## 实验难点
-1. %union
+1. %union 编译
 
 2. 内存泄漏
 ## 实验设计
 ### 词法分析
 阅读代码发现`%union`只需一个类型`syntax_tree_node*`
 
-需要在bison中利用以下directive（复制该段代码至`*.tab.h`和`*.tab.c`中），才能使生成的头文件中的token编译
-```bison
+需要在bison中利用以下directive（可以代码段至`*.tab.h`和`*.tab.c`中），才能使生成的头文件中的token编译
+```c
 %code requires {
 #include "syntax_tree.h"
 }
-```
-```c
-union YYSTYPE
-{
-    syntax_tree_node* node;
-};
 ```
 
 然后，给所有终结符都分配一个token，方便生成节点。
@@ -101,7 +95,14 @@ syntax_tree *parse(const char *input_path) {
     return gt;
 }
 ```
+修改过后valgrind输出如下
+```
+    HEAP SUMMARY:
+        in use at exit: 0 bytes in 0 blocks
+      total heap usage: 184 allocs, 184 frees, 117,290 bytes allocated
 
+    All heap blocks were freed -- no leaks are possible
+```
 ## 实验结果验证
 运行测试脚本
 ```
@@ -132,5 +133,6 @@ int mian /* on purpose! */ (void) {
     i = /* no minus sign - */ 1;
 }
 ```
+若取消注释，根据语法应无法通过parsing。
 ## 实验反馈
 本次实验难度不大，利用flex与bison构建了一个类c语言的语法分析器。
