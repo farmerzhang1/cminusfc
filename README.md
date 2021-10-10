@@ -5,7 +5,9 @@
 ## 目前已布置的实验
 
 * [lab1](./Documentations/1-parser/)
-  + DDL：2021-10-03 23:59:59 (UTC+8)
+  + DDL：2021-10-06(~~10-03~~) 23:59:59 (UTC+8)
+* [lab2](./Documentations/2-ir-gen-warmup/)
+  + DDL：2021-10-22 23:59:59 (UTC+8)
 
 ## FAQ: How to merge upstream remote branches
 
