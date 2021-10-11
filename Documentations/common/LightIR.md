@@ -1,30 +1,30 @@
 # Light IR
 - [Light IR](#light-ir)
-  - [Light IR 简介](#lightir-简介)
+  - [LightIR 简介](#lightir-简介)
   - [IR 格式](#ir-格式)
     - [IR 结构图](#ir-结构图)
   - [IR 指令](#ir-指令)
     - [指令格式](#指令格式)
       - [Terminator Instructions](#terminator-instructions)
-        - [Ret](#ret)
-        - [Br](#br)
+        - ['ret' 指令](#ret-指令)
+        - ['br' 指令](#br-指令)
       - [Standard binary operators](#standard-binary-operators)
-        - [Add FAdd](#add-fadd)
-        - [Sub FSub](#sub-fsub)
-        - [Mul FMul](#mul-fmul)
-        - [SDiv FDiv](#sdiv-fdiv)
+        - ['add' 和 'fadd' 指令](#add-和-fadd-指令)
+        - ['sub' 和 'fsub' 指令](#sub-和-fsub-指令)
+        - ['mul' 和 'fmul' 指令](#mul-和-fmul-指令)
+        - ['sdiv' 和 'fdiv' 指令](#sdiv-和-fdiv-指令)
       - [Memory operators](#memory-operators)
-        - [Alloca](#alloca)
-        - [Load](#load)
-        - [Store](#store)
+        - ['alloca' 指令](#alloca-指令)
+        - ['load' 指令](#load-指令)
+        - ['store' 指令](#store-指令)
       - [CastInst](#castinst)
-        - [ZExt](#zext)
-        - [FpToSi](#fptosi)
-        - [SiToFp](#sitofp)
+        - ['zext' 指令](#zext-指令)
+        - ['fptosi' 指令](#fptosi-指令)
+        - ['sitofp' 指令](#sitofp-指令)
       - [Other operators](#other-operators)
-        - [ICmp FCmp](#icmp-fcmp)
-        - [Call](#call)
-        - [GetElementPtr](#getelementptr)
+        - ['icmp' 和 'fcmp' 指令](#icmp-和-fcmp-指令)
+        - ['call' 指令](#call-指令)
+        - ['getelementptr' 指令](#getelementptr-指令)
   - [C++ APIs](#c-apis)
     - [C++类关系图](#c类关系图)
     - [Module](#module)
@@ -166,8 +166,8 @@
 ### 指令格式
 
 #### Terminator Instructions
-**注**：ret与br都是Terminator Instructions也就是终止指令，在llvm基本块的定义里，基本块是单进单出的，因此只能有一条终止指令（ret或br）。当一个基本块有两条终止指令，clang 在做解析会认为第一个终结指令是此基本块的结束，并会开启一个新的匿名的基本块（并占用了下一个编号）。
-##### Ret
+**注**：`ret` 与 `br` 都是 Terminator Instructions 也就是终止指令，在 llvm 基本块的定义里，基本块是单进单出的，因此只能有一条终止指令（`ret` 或 `br`）。当一个基本块有两条终止指令，clang 在做解析会认为第一个终结指令是此基本块的结束，并会开启一个新的匿名的基本块（并占用了下一个编号）。
+##### 'ret' 指令
 - 概念：返回指令。用于将控制流（以及可选的值）从函数返回给调用者。`ret`指令有两种形式：一种返回值，然后终结函数，另一种仅终结函数。
 - 格式
   - `ret <type> <value>`
@@ -175,7 +175,7 @@
 - 例子：
   - `ret i32 %0`
   - `ret void`
-##### Br
+##### 'br' 指令
 - 概念：跳转指令。用于使控制流转移到当前功能中的另一个基本块。该指令有两种形式，分别对应于条件分支和无条件分支。
 - 格式：
   - `br i1 <cond>, label <iftrue>, label <iffalse>`
@@ -184,7 +184,7 @@
   - `br i1 %cond label %truebb label %falsebb`
   - `br label %bb`
 #### Standard binary operators
-##### Add FAdd
+##### 'add' 和 'fadd' 指令
 - 概念：`add`指令返回其两个`i32`类型的操作数之和，返回值为`i32`类型，`fadd`指令返回其两个`float`类型的操作数之和，返回值为`float`类型。
 - 格式：
   - `<result> = add <type> <op1>, <op2>`
@@ -193,54 +193,54 @@
   - `%2 = add i32 %1, %0`
   - `%2 = fadd float %1, %0`
 
-##### Sub FSub
+##### 'sub' 和 'fsub' 指令
 - 概念：`sub`指令返回其两个`i32`类型的操作数之差，返回值为`i32`类型，`fsub`指令返回其两个`float`类型的操作数之差，返回值为`float`类型。
 - 格式与例子与`add`，`fadd`类似
 
-##### Mul FMul
+##### 'mul' 和 'fmul' 指令
 - 概念：`mul`指令返回其两个`i32`类型的操作数之积，返回值为`i32`类型，`fmul`指令返回其两个`float`类型的操作数之积，返回值为`float`类型。
 - 格式与例子与`add`，`fadd`类似
 
-##### SDiv FDiv
+##### 'sdiv' 和 'fdiv' 指令
 - 概念：`sdiv`指令返回其两个`i32`类型的操作数之商，返回值为`i32`类型，`fdiv`指令返回其两个`float`类型的操作数之商，返回值为`float`类型。
 - 格式与例子与`add`，`fadd`类似
 
 #### Memory operators
-##### Alloca
+##### 'alloca' 指令
 - 概念： `alloca`指令在当前执行函数的堆栈帧上分配内存，当该函数返回其调用者时将自动释放该内存。 始终在地址空间中为数据布局中指示的分配资源分配对象。
 - 格式：`<result> = alloca <type>`
 - 例子：
   - `%ptr = alloca i32`
   - `%ptr = alloca [10 x i32]`
 
-##### Load
+##### 'load' 指令
 - 概念：`load`指令用于从内存中读取。
 - 格式：`<result> = load <type>, <type>* <pointer>`
 - 例子：`%val = load i32, i32* %ptr`
 
-##### Store
+##### 'store' 指令
 - 概念：`store`指令用于写入内存。
 - 格式：`store <type> <value>, <type>* <pointer>`
 - 例子：`store i32 3, i32* %ptr`
 
 #### CastInst
-##### ZExt
+##### 'zext' 指令
 - 概念：`zext`指令将其操作数**零**扩展为`type2`类型。
 - 格式：`<result> = zext <type> <value> to <type2>`
 - 例子：`%1 = zext i1 %0 to i32`
 
-##### FpToSi
+##### 'fptosi' 指令
 - 概念：`fptosi`指令将浮点值转换为`type2`（整数）类型。
 - 格式：`<result> = fptosi <type> <value> to <type2>`
 - 例子：`%Y = fptosi float 1.0E-247 to i32`
 
-##### SiToFp
+##### 'sitofp' 指令
 - 概念：`sitofp`指令将有符号整数转换为`type2`（浮点数）类型。
 - 格式：`<result> = sitofp <type> <value> to <type2>`
 - 例子：`%X = sitofp i32 257 to float`
 
 #### Other operators
-##### ICmp FCmp
+##### 'icmp' 和 'fcmp' 指令
 - 概念：`icmp`指令根据两个整数的比较返回布尔值，`fcmp`指令根据两个浮点数的比较返回布尔值。
 - 格式：
   - `<result> = icmp <cond> <type> <op1>, <op2>`
@@ -249,7 +249,7 @@
     - `<cond> = eq | ne | ugt | uge | ult | ule`
 - 例子：`i1 %2 = icmp sge i32 %0, %1`
 
-##### Call
+##### 'call' 指令
 - 概念：`call`指令用于使控制流转移到指定的函数，其传入参数绑定到指定的值。 在被调用函数中执行`ret`指令后，控制流程将在函数调用后继续执行该指令，并且该函数的返回值绑定到`result`参数。
 - 格式：
   - `<result> = call <return ty> <func name>(<function args>) `
@@ -257,7 +257,7 @@
   - `%0 = call i32 @func( i32 %1, i32* %0)`
   - `call @func( i32 %arg)`
 
-##### GetElementPtr
+##### 'getelementptr' 指令
 - 概念：`getelementptr`指令用于获取数组结构的元素的地址。 它仅执行地址计算，并且不访问内存。
 - 格式：`<result> = getelementptr <type>, <type>* <ptrval> [, <type> <idx>]`
 - 参数解释：第一个参数是计算基础类型，第二第三个参数表示索引开始的指针类型及指针，`[]`表示可重复参数，里面表示的数组索引的偏移类型及偏移值。（Question：思考指针类型为`[10 x i32]`指针和`i32`指针`getelementptr`用法的不同，并给出解释，实验结束后回答两者使用情况的区别）
