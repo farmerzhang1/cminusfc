@@ -181,7 +181,7 @@
   - `br i1 <cond>, label <iftrue>, label <iffalse>`
   - `br label <dest>`
 - 例子：
-  - `br i1 %cond label %truebb label %falsebb`
+  - `br i1 %cond, label %truebb label %falsebb`
   - `br label %bb`
 #### Standard binary operators
 ##### 'add' 和 'fadd' 指令
