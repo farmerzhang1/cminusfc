@@ -247,7 +247,7 @@
     - `<cond> = eq | ne | sgt | sge | slt | sle`
   - `<result> = fcmp <cond> <type> <op1>, <op2>`
     - `<cond> = eq | ne | ugt | uge | ult | ule`
-- 例子：`i1 %2 = icmp sge i32 %0, %1`
+- 例子：`%2 = icmp sge i32 %0, %1`
 
 ##### 'call' 指令
 - 概念：`call`指令用于使控制流转移到指定的函数，其传入参数绑定到指定的值。 在被调用函数中执行`ret`指令后，控制流程将在函数调用后继续执行该指令，并且该函数的返回值绑定到`result`参数。
