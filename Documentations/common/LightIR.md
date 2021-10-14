@@ -181,7 +181,7 @@
   - `br i1 <cond>, label <iftrue>, label <iffalse>`
   - `br label <dest>`
 - 例子：
-  - `br i1 %cond label %truebb label %falsebb`
+  - `br i1 %cond, label %truebb label %falsebb`
   - `br label %bb`
 #### Standard binary operators
 ##### 'add' 和 'fadd' 指令
@@ -263,7 +263,7 @@
 - 参数解释：第一个参数是计算基础类型，第二第三个参数表示索引开始的指针类型及指针，`[]`表示可重复参数，里面表示的数组索引的偏移类型及偏移值。（Question：思考指针类型为`[10 x i32]`指针和`i32`指针`getelementptr`用法的不同，并给出解释，实验结束后回答两者使用情况的区别）
 - 例子：
   - `%2 = getelementptr [10 x i32], [10 x i32]* %1, i32 0, i32 %0`
-  - `%2 = getelementptr i32, i32* %1 i32 %0`
+  - `%2 = getelementptr i32, i32* %1, i32 %0`
 - **额外阅读（很重要）**：[The Often Misunderstood GEP Instruction](https://llvm.org/docs/GetElementPtr.html)
 
 ## C++ APIs
