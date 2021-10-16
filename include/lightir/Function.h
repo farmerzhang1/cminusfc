@@ -33,20 +33,20 @@ public:
 
     unsigned get_num_of_args() const;
     unsigned get_num_basic_blocks() const;
-    
+
     Module *get_parent() const;
 
     std::list<Argument *>::iterator arg_begin() { return arguments_.begin(); }
     std::list<Argument *>::iterator arg_end() { return arguments_.end(); }
-    
+
     void remove(BasicBlock* bb);
     BasicBlock *get_entry_block() { return *basic_blocks_.begin(); }
 
     std::list<BasicBlock *> &get_basic_blocks() { return basic_blocks_; }
     std::list<Argument *> &get_args() { return arguments_; }
-    
+
     bool is_declaration() { return basic_blocks_.empty(); }
-    
+
     void set_instr_name();
     std::string print();
 

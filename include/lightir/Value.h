@@ -27,13 +27,13 @@ public:
 
     void add_use(Value *val, unsigned arg_no = 0);
 
-    bool set_name(std::string name) { 
+    bool set_name(std::string name) {
         if (name_ == "")
         {
             name_=name;
             return true;
-        }   
-        return false; 
+        }
+        return false;
     }
     std::string get_name() const;
 

@@ -25,7 +25,7 @@ public:
 
     // return parent, or null if none.
     Function *get_parent() { return parent_; }
-    
+
     Module *get_module();
 
     /****************api about cfg****************/
@@ -47,7 +47,7 @@ public:
         return const_cast<Instruction *>(
             static_cast<const BasicBlock *>(this)->get_terminator());
     }
-    
+
     void add_instruction(Instruction *instr);
     void add_instr_begin(Instruction *instr);
 
@@ -57,9 +57,9 @@ public:
 
     int get_num_of_instr() { return instr_list_.size(); }
     std::list<Instruction *> &get_instructions() { return instr_list_; }
-    
+
     void erase_from_parent();
-    
+
     virtual std::string print() override;
 
 private:
