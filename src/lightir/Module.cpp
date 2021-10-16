@@ -1,6 +1,6 @@
 #include "Module.h"
 
-Module::Module(std::string name) 
+Module::Module(std::string name)
     : module_name_(name)
 {
     void_ty_ = new Type(Type::VoidTyID, this);
@@ -9,14 +9,14 @@ Module::Module(std::string name)
     int32_ty_ = new IntegerType(32, this);
     float32_ty_ = new FloatType(this);
     // init instr_id2string
-    instr_id2string_.insert({ Instruction::ret, "ret" }); 
-    instr_id2string_.insert({ Instruction::br, "br" }); 
-    
+    instr_id2string_.insert({ Instruction::ret, "ret" });
+    instr_id2string_.insert({ Instruction::br, "br" });
+
     instr_id2string_.insert({ Instruction::add, "add" });
     instr_id2string_.insert({ Instruction::sub, "sub" });
     instr_id2string_.insert({ Instruction::mul, "mul" });
     instr_id2string_.insert({ Instruction::sdiv, "sdiv" });
-    
+
     instr_id2string_.insert({ Instruction::fadd, "fadd" });
     instr_id2string_.insert({ Instruction::fsub, "fsub" });
     instr_id2string_.insert({ Instruction::fmul, "fmul" });

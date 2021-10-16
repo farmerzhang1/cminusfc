@@ -23,13 +23,13 @@ void User::set_operand(unsigned i, Value *v)
 {
     assert(i < num_ops_ && "set_operand out of index");
     // assert(operands_[i] == nullptr && "ith operand is not null");
-    operands_[i] = v;  
+    operands_[i] = v;
     v->add_use(this, i);
 }
 
 void User::add_operand( Value *v)
 {
-    operands_.push_back(v);  
+    operands_.push_back(v);
     v->add_use(this, num_ops_);
     num_ops_++;
 }
