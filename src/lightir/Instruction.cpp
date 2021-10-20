@@ -22,16 +22,16 @@ Instruction::Instruction(Type *ty, OpID id, unsigned num_ops)
 }
 
 Function *Instruction::get_function()
-{ 
-    return parent_->get_parent(); 
+{
+    return parent_->get_parent();
 }
 
-Module *Instruction::get_module() 
-{ 
-    return parent_->get_module(); 
+Module *Instruction::get_module()
+{
+    return parent_->get_module();
 }
 
-BinaryInst::BinaryInst(Type *ty, OpID id, Value *v1, Value *v2, 
+BinaryInst::BinaryInst(Type *ty, OpID id, Value *v1, Value *v2,
                     BasicBlock *bb)
     : Instruction(ty, id, 2, bb)
 {
@@ -111,7 +111,7 @@ std::string BinaryInst::print()
     return instr_ir;
 }
 
-CmpInst::CmpInst(Type *ty, CmpOp op, Value *lhs, Value *rhs, 
+CmpInst::CmpInst(Type *ty, CmpOp op, Value *lhs, Value *rhs,
             BasicBlock *bb)
     : Instruction(ty, Instruction::cmp, 2, bb), cmp_op_(op)
 {
@@ -128,7 +128,7 @@ void CmpInst::assertValid()
         == static_cast<IntegerType *>(get_operand(1)->get_type())->get_num_bits());
 }
 
-CmpInst *CmpInst::create_cmp(CmpOp op, Value *lhs, Value *rhs, 
+CmpInst *CmpInst::create_cmp(CmpOp op, Value *lhs, Value *rhs,
                         BasicBlock *bb, Module *m)
 {
     return new CmpInst(m->get_int1_type(), op, lhs, rhs, bb);
@@ -159,7 +159,7 @@ std::string CmpInst::print()
     return instr_ir;
 }
 
-FCmpInst::FCmpInst(Type *ty, CmpOp op, Value *lhs, Value *rhs, 
+FCmpInst::FCmpInst(Type *ty, CmpOp op, Value *lhs, Value *rhs,
             BasicBlock *bb)
     : Instruction(ty, Instruction::fcmp, 2, bb), cmp_op_(op)
 {
@@ -174,7 +174,7 @@ void FCmpInst::assert_valid()
     assert(get_operand(1)->get_type()->is_float_type());
 }
 
-FCmpInst *FCmpInst::create_fcmp(CmpOp op, Value *lhs, Value *rhs, 
+FCmpInst *FCmpInst::create_fcmp(CmpOp op, Value *lhs, Value *rhs,
                         BasicBlock *bb, Module *m)
 {
     return new FCmpInst(m->get_int1_type(), op, lhs, rhs, bb);
@@ -209,7 +209,7 @@ CallInst::CallInst(Function *func, std::vector<Value *> args, BasicBlock *bb)
     : Instruction(func->get_return_type(), Instruction::call, args.size() + 1, bb)
 {
     assert(func->get_num_of_args() == args.size());
-    int num_ops = args.size() + 1; 
+    int num_ops = args.size() + 1;
     set_operand(0, func);
     for (int i = 1; i < num_ops; i++) {
         set_operand(i, args[i-1]);
@@ -237,8 +237,8 @@ std::string CallInst::print()
     }
     instr_ir += this->get_module()->get_instr_op_name( this->get_instr_type() );
     instr_ir += " ";
-    instr_ir += this->get_function_type()->get_return_type()->print();    
-    
+    instr_ir += this->get_function_type()->get_return_type()->print();
+
     instr_ir += " ";
     assert(dynamic_cast<Function *>(this->get_operand(0)) && "Wrong call operand function");
     instr_ir += print_as_op(this->get_operand(0), false);
@@ -285,7 +285,7 @@ BranchInst *BranchInst::create_br(BasicBlock *if_true, BasicBlock *bb)
 {
     if_true->add_pre_basic_block(bb);
     bb->add_succ_basic_block(if_true);
- 
+
     return new BranchInst(if_true, bb);
 }
 
@@ -353,12 +353,12 @@ std::string ReturnInst::print()
     {
         instr_ir += "void";
     }
-    
+
     return instr_ir;
 }
 
 GetElementPtrInst::GetElementPtrInst(Value *ptr, std::vector<Value *> idxs, BasicBlock *bb)
-    : Instruction(PointerType::get(get_element_type(ptr, idxs)), Instruction::getelementptr, 
+    : Instruction(PointerType::get(get_element_type(ptr, idxs)), Instruction::getelementptr,
                 1 + idxs.size(), bb)
 {
     set_operand(0, ptr);
@@ -379,7 +379,7 @@ Type *GetElementPtrInst::get_element_type(Value *ptr, std::vector<Value *> idxs)
         for (int i = 1; i < idxs.size(); i++) {
             ty = arr_ty->get_element_type();
             if (i < idxs.size() - 1) {
-                assert(ty->is_array_type() && "Index error!");    
+                assert(ty->is_array_type() && "Index error!");
             }
             if (ty->is_array_type()) {
                 arr_ty = static_cast<ArrayType *>(ty);
@@ -505,7 +505,7 @@ std::string AllocaInst::print()
     instr_ir += this->get_module()->get_instr_op_name( this->get_instr_type() );
     instr_ir += " ";
     instr_ir += get_alloca_type()->print();
-    return instr_ir;    
+    return instr_ir;
 }
 
 ZextInst::ZextInst(OpID op, Value *val, Type *ty, BasicBlock *bb)
@@ -537,7 +537,7 @@ std::string ZextInst::print()
     instr_ir += print_as_op(this->get_operand(0), false);
     instr_ir += " to ";
     instr_ir += this->get_dest_type()->print();
-    return instr_ir; 
+    return instr_ir;
 }
 
 FpToSiInst::FpToSiInst(OpID op, Value *val, Type *ty, BasicBlock *bb)
@@ -569,7 +569,7 @@ std::string FpToSiInst::print()
     instr_ir += print_as_op(this->get_operand(0), false);
     instr_ir += " to ";
     instr_ir += this->get_dest_type()->print();
-    return instr_ir; 
+    return instr_ir;
 }
 
 SiToFpInst::SiToFpInst(OpID op, Value *val, Type *ty, BasicBlock *bb)
@@ -601,7 +601,7 @@ std::string SiToFpInst::print()
     instr_ir += print_as_op(this->get_operand(0), false);
     instr_ir += " to ";
     instr_ir += this->get_dest_type()->print();
-    return instr_ir; 
+    return instr_ir;
 }
 
 PhiInst::PhiInst(OpID op, std::vector<Value *> vals, std::vector<BasicBlock *> val_bbs, Type *ty, BasicBlock *bb)
@@ -653,5 +653,5 @@ std::string PhiInst::print()
             }
         }
     }
-    return instr_ir; 
+    return instr_ir;
 }

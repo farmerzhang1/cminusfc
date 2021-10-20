@@ -29,7 +29,7 @@ std::string ConstantInt::print()
 }
 
 ConstantArray::ConstantArray(ArrayType *ty, const std::vector<Constant*> &val)
-    : Constant(ty, "", val.size()) 
+    : Constant(ty, "", val.size())
 {
     for (int i = 0; i < val.size(); i++)
         set_operand(i, val[i]);
@@ -59,22 +59,22 @@ std::string ConstantArray::print()
     return const_ir;
 }
 
-ConstantFP *ConstantFP::get(float val, Module *m) 
+ConstantFP *ConstantFP::get(float val, Module *m)
 {
     return new ConstantFP(Type::get_float_type(m), val);
 }
 
-std::string ConstantFP::print() 
+std::string ConstantFP::print()
 {
     std::stringstream fp_ir_ss;
     std::string fp_ir;
     double val = this->get_value();
     fp_ir_ss << "0x"<< std::hex << *(uint64_t *)&val << std::endl;
-    fp_ir_ss >> fp_ir; 
+    fp_ir_ss >> fp_ir;
     return fp_ir;
 }
 
-ConstantZero *ConstantZero::get(Type *ty, Module *m) 
+ConstantZero *ConstantZero::get(Type *ty, Module *m)
 {
     return new ConstantZero(ty);
 }

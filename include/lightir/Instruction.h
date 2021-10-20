@@ -35,7 +35,7 @@ public:
         fcmp,
         phi,
         call,
-        getelementptr, 
+        getelementptr,
         zext, // zero extend
         fptosi,
         sitofp
@@ -79,7 +79,7 @@ public:
             case zext: return "zext"; break;
             case fptosi: return "fptosi"; break;
             case sitofp: return "sitofp"; break;
-        
+
         default: return ""; break;
         }
     }
@@ -99,8 +99,8 @@ public:
     bool is_sub() { return op_id_ == sub; }
     bool is_mul() { return op_id_ == mul; }
     bool is_div() { return op_id_ == sdiv; }
-    
-    
+
+
     bool is_fadd() { return op_id_ == fadd; }
     bool is_fsub() { return op_id_ == fsub; }
     bool is_fmul() { return op_id_ == fmul; }
@@ -114,7 +114,7 @@ public:
     bool is_call() { return op_id_ == call; }
     bool is_gep() { return op_id_ == getelementptr; }
     bool is_zext() { return op_id_ == zext; }
-    
+
 
     bool isBinary()
     {
