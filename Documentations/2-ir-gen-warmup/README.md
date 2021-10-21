@@ -78,6 +78,8 @@ Visitor Pattern 是为了解决**稳定的数据结构**和**易变的操作耦�
 有关 Visitor Pattern 的含义、模式和特点，有梯子的同学可参考 [维基百科](https://en.wikipedia.org/wiki/Visitor_pattern#C++_example)。其中较为重要的一点原则在于， C++ 中对函数重载特性的支持。
 在 `tests/2-ir-gen-warmup/calculator` 中，助教编写了一个利用访问者模式，产生计算算数表达式的中间代码的程序。该程序首先对算数表达式进行语法分析生成语法树，再使用访问者模式来遍历语法树，产生中间代码。在 [calc_ast.hpp](../../tests/2-ir-gen-warmup/calculator/calc_ast.hpp) 中，我们定义了语法树的不同节点类型。在 [calc_builder.cpp](../../tests/2-ir-gen-warmup/calculator/calc_builder.cpp) 中，我们使用 LightIR 编写了不同的 `visit` 函数。根据节点类型的不同，编译器会在多种 `visit` 函数中，选择对应的实现进行调用。请认真阅读这两个文件和其它相关代码，理解语法树是如何通过访问者模式被遍历的，并在 [report.md](./Reports/2-ir-gen-warmup/report.md)中**回答问题2**。
 
+**update**: 新增了[C++简介](Documentations/common/simple_cpp.md)
+
 该程序使用方法如下:
 ``` shell
 # 在 build 目录下操作
