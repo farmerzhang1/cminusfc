@@ -4,3 +4,4 @@ labs/
 *.tab.h
 lex.yy.c
 .vscode/
+infer-out/
