@@ -19,7 +19,7 @@ class Value
 {
 public:
     explicit Value(Type *ty, const std::string &name = "");
-    ~Value() = default;
+    virtual ~Value() = default;
 
     Type *get_type() const { return type_; }
 

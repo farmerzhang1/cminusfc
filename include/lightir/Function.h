@@ -22,7 +22,7 @@ class Function : public Value
 {
 public:
     Function(FunctionType *ty, const std::string &name, Module *parent);
-    ~Function();
+    ~Function() = default;
     static Function *create(FunctionType *ty, const std::string &name, Module *parent);
 
     FunctionType *get_function_type() const;
