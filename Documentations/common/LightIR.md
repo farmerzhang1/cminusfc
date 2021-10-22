@@ -47,7 +47,7 @@
 ## IR 格式
 
 ### IR 结构图
-![image-20201109145323504](figs/image-20201109145323504.png)  
+![image-20201109145323504](figs/image-20201109145323504.png)
 我们实验中需要生成的IR代码有着相对固定的结构模式。
 
 - 最上层的是模块，可以理解为一个完整编译单元，来源于一个`cminus-f`源文件。模块包含全局变量和函数定义。
@@ -58,7 +58,7 @@
 以下面的`easy.c`与`easy.ll`为例进行说明。
 通过命令`clang -S -emit-llvm easy.c`可以得到对应的`easy.ll`如下（助教增加了额外的注释）。`.ll`文件中注释以`;`开头。
 
-- `easy.c`:  
+- `easy.c`:
   ``` c
   int main(){
     int a;
@@ -71,7 +71,7 @@
   }
   ```
 
-- `easy.ll`:  
+- `easy.ll`:
   ``` c
   ; 注释: .ll文件中注释以';'开头
   ; ModuleID = 'easy.c'
@@ -80,7 +80,7 @@
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   target triple = "x86_64-unknown-linux-gnu"
   ; 注释: target的结束
-  
+
   ; 注释: 全局main函数的定义
   ; Function Attrs: noinline nounwind optnone uwtable
   define dso_local i32 @main() #0 {
@@ -96,13 +96,13 @@
     %6 = icmp slt i32 %4, %5
     br i1 %6, label %7, label %8
   ; 注释: 第一个基本块的结束
-  
+
   ; 注释: 第二个基本块的开始
   7:                                                ; preds = %0
     store i32 3, i32* %3, align 4
     br label %8
   ; 注释: 第二个基本块的结束
-  
+
   ; 注释: 第三个基本块的开始
   8:                                                ; preds = %7, %0
     %9 = load i32, i32* %2, align 4
@@ -111,12 +111,12 @@
     ret i32 %11                                     ; 注释: 返回语句
   ; 注释: 第三个基本块的结束
   }
-  
+
   attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
-  
+
   !llvm.module.flags = !{!0}
   !llvm.ident = !{!1}
-  
+
   !0 = !{i32 1, !"wchar_size", i32 4}
   !1 = !{!"clang version 10.0.1 "}
   ```
@@ -471,7 +471,7 @@ public:
 
 ```cpp
 // 用于全局变量初始化的零常量
-class ConstantZero : public Constant 
+class ConstantZero : public Constant
 {
 public:
     // 创建并返回零常量
@@ -614,7 +614,7 @@ class Type {
 private:
     // 类型种类
     TypeID tid_;
-    Module *m_; 
+    Module *m_;
 public:
     // 判断是否是ty类型
     bool is_[ty]_type();
@@ -635,7 +635,7 @@ public:
 class IntegerType : public Type {
 public:
     explicit IntegerType(unsigned num_bits ,Module *m);
-    // 创建 IntegerType 类型，IntegerType 包含 int1 与 int32 
+    // 创建 IntegerType 类型，IntegerType 包含 int1 与 int32
     static IntegerType *get(unsigned num_bits, Module *m );
     // 获得 IntegerType 类型的长度
     unsigned get_num_bits();
