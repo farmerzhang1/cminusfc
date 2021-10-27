@@ -105,21 +105,3 @@ void CalcASTTerm::accept(CalcASTVisitor &visitor) { visitor.visit(*this); }
 void CalcASTExpression::accept(CalcASTVisitor &visitor) { visitor.visit(*this); }
 
 void CalcASTInput::accept(CalcASTVisitor &visitor) { expression->accept(visitor); }
-
-void CalcASTFactor::accept(CalcASTVisitor &visitor) {
-    auto expr =
-        dynamic_cast<CalcASTExpression *>(this);
-    if (expr) {
-        expr->accept(visitor);
-        return;
-    }
-
-    auto num =
-        dynamic_cast<CalcASTNum *>(this);
-    if (num) {
-        num->accept(visitor);
-        return;
-    }
-
-    _AST_NODE_ERROR_
-}
