@@ -53,11 +53,7 @@ int main(int argc, char **argv) {
                 std::cerr << argv[0] << ": input file " << input_path << " has unknown filetype!" << std::endl;
                 return -1;
             }
-            if (emit) {
-                target_path = input_path.substr(0, pos);
-            } else {
-                target_path = input_path.substr(0, pos);
-            }
+            target_path = input_path.substr(0, pos);
         }
     }
 
