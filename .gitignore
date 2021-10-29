@@ -5,3 +5,4 @@ labs/
 lex.yy.c
 .vscode/
 infer-out/
+result*

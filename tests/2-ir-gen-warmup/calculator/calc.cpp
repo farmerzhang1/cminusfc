@@ -4,6 +4,7 @@ extern "C" {
 }
 #include <cstdio>
 #include <fstream>
+#include <filesystem>
 #include "calc_ast.hpp"
 #include "calc_builder.hpp"
 using namespace std::literals::string_literals;
@@ -32,12 +33,14 @@ int main(int argc, char *argv[])
     auto IR = module->print();
 
     std::ofstream output_stream;
-    auto output_file = "result.ll";
+    std::string cur = std::filesystem::current_path();
+    auto output_file = cur + "/result.ll";
     output_stream.open(output_file, std::ios::out);
     output_stream << "; ModuleID = 'calculator'\n";
     output_stream << IR;
     output_stream.close();
-    auto command_string = "clang -O0 -w "s + "result.ll -o result -L. -lcminus_io";
+    std::string lib = CMAKE_LIBRARY_OUTPUT_DIRECTORY;
+    auto command_string = "clang -O0 -w "s + output_file + " -o result -L. -L" + lib + " -lcminus_io";
     auto ret = std::system(command_string.c_str());
     if (ret) {
         printf("something went wrong!\n");
