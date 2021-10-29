@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
     output_stream << IR;
     output_stream.close();
     std::string lib = CMAKE_LIBRARY_OUTPUT_DIRECTORY;
-    auto command_string = "clang -O0 -w "s + output_file + " -o result -L. -L" + lib + " -lcminus_io";
+    auto command_string = "clang -O0 -w "s + output_file + " -o result -L" + lib + " -lcminus_io";
     auto ret = std::system(command_string.c_str());
     if (ret) {
         printf("something went wrong!\n");
