@@ -6,7 +6,7 @@
   - [1. 实验框架](#1-实验框架)
   - [2. 运行与调试](#2-运行与调试)
     - [运行 cminusfc](#运行-cminusfc)
-    - [自动测试](#自动测试)
+    - [测试](#测试)
     - [logging](#logging)
     - [建议](#建议)
   - [3. 提交要求](#3-提交要求)
@@ -145,13 +145,13 @@ cminusfc test.cminus
 
 ### 提交要求和评分标准
 
-* 提交要求  
+* 提交要求
   本实验是组队实验，我们将收取**队长**实验仓库中的内容
   * 实验部分:
     * 需要填补 `./src/cminusfc/cminusf_builder.cpp`
     * 需要在 `./Reports/3-ir-gen/` 目录下撰写实验报告，且由队长说明成员贡献比率
     * 本次实验收取 `./src/cminusfc/cminusf_builder.cpp` 文件和 `./Reports/3-ir-gen` 目录
-* 评分标准: 
+* 评分标准:
   * 最终评分按照[组队规则](http://211.86.152.198:8080/staff/2021fall-notice_board/-/issues/46)，实验完成分（总分 60 分）组成如下：
     * cminusf 程序测试 (45分)
     * `report.md`(15分)
@@ -159,7 +159,7 @@ cminusfc test.cminus
 * 迟交规定
   * `Soft Deadline` : 2021/11/21 23:59:59 (北京标准时间，UTC+8)
   * `Hard Deadline` : 2021/11/28 23:59:59 (北京标准时间，UTC+8)
-  * 迟交需要邮件通知TA: 
+  * 迟交需要邮件通知TA:
     * 邮箱: lijh2015@mail.ustc.edu.cn
     * 邮件主题: lab3迟交-队长学号
     * 内容: 包括迟交原因、最后版本commitID、迟交时间等
