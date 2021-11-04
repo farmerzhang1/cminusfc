@@ -76,7 +76,7 @@ CalcAST::transform_node_iter(syntax_tree_node *n) {
 
             auto factor_node =
                 static_cast<CalcASTFactor *>(
-                        transform_node_iter(n->children[2]));
+                        transform_node_iter(n->children[2])); // return CalcASTExpression or CalcASTNum : Factor
             node->factor = std::shared_ptr<CalcASTFactor>(factor_node);
         } else {
             auto factor_node =
@@ -105,3 +105,6 @@ void CalcASTTerm::accept(CalcASTVisitor &visitor) { visitor.visit(*this); }
 void CalcASTExpression::accept(CalcASTVisitor &visitor) { visitor.visit(*this); }
 
 void CalcASTInput::accept(CalcASTVisitor &visitor) { expression->accept(visitor); }
+
+void test(int);
+void test(std::string);
