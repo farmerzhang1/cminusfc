@@ -161,7 +161,13 @@ IntegerType::IntegerType(unsigned num_bits , Module *m)
 
 IntegerType *IntegerType::get(unsigned num_bits, Module *m )
 {
-    return new IntegerType(num_bits, m);
+    if (num_bits == 1) {
+        return m->get_int1_type();
+    } else if (num_bits == 32) {
+        return m->get_int32_type();
+    } else {
+        assert("IntegerType::get has error num_bits");
+    }
 }
 
 unsigned IntegerType::get_num_bits()
@@ -245,4 +251,8 @@ FloatType::FloatType (Module *m)
     : Type(Type::FloatTyID, m) 
 {
 
+}
+
+FloatType* FloatType::get(Module *m) {
+    return m->get_float_type();
 }
