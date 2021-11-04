@@ -57,7 +57,7 @@ AST::transform_node_iter(syntax_tree_node *n) {
             node->type = TYPE_INT;
         else
             node->type = TYPE_FLOAT;
- 
+
         if (n->children_num == 3) {
             node->id = n->children[1]->name;
         } else if (n->children_num == 6) {

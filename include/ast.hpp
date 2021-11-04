@@ -96,7 +96,7 @@ struct ASTProgram : ASTNode {
 
 struct ASTDeclaration: ASTNode {
     CminusType type;
-    std::string id;
+    std::string id; // 这里是数字 int or float
 };
 
 struct ASTFactor: ASTNode { };
@@ -112,7 +112,7 @@ struct ASTNum: ASTFactor {
 
 struct ASTVarDeclaration: ASTDeclaration {
     virtual void accept(ASTVisitor &) override final;
-    std::shared_ptr<ASTNum> num;
+    std::shared_ptr<ASTNum> num; // num若不为空，值为数组类型和数组个数
 };
 
 struct ASTFunDeclaration: ASTDeclaration {
@@ -137,14 +137,14 @@ struct ASTCompoundStmt: ASTStatement {
     std::vector<std::shared_ptr<ASTStatement>> statement_list;
 };
 
-struct ASTExpressionStmt: ASTStatement { 
+struct ASTExpressionStmt: ASTStatement {
     virtual void accept(ASTVisitor &) override final;
-    std::shared_ptr<ASTExpression> expression; 
+    std::shared_ptr<ASTExpression> expression;
 };
 
 struct ASTSelectionStmt: ASTStatement {
     virtual void accept(ASTVisitor &) override final;
-    std::shared_ptr<ASTExpression> expression; 
+    std::shared_ptr<ASTExpression> expression;
     std::shared_ptr<ASTStatement> if_statement;
     // should be nullptr if no else structure exists
     std::shared_ptr<ASTStatement> else_statement;
@@ -152,14 +152,14 @@ struct ASTSelectionStmt: ASTStatement {
 
 struct ASTIterationStmt: ASTStatement {
     virtual void accept(ASTVisitor &) override final;
-    std::shared_ptr<ASTExpression> expression; 
+    std::shared_ptr<ASTExpression> expression;
     std::shared_ptr<ASTStatement> statement;
 };
 
 struct ASTReturnStmt: ASTStatement {
     virtual void accept(ASTVisitor &) override final;
     // should be nullptr if return void
-    std::shared_ptr<ASTExpression> expression; 
+    std::shared_ptr<ASTExpression> expression;
 };
 
 struct ASTExpression: ASTFactor { };

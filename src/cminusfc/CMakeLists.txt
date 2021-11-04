@@ -2,6 +2,7 @@ add_executable(
     cminusfc
     cminusfc.cpp
     cminusf_builder.cpp
+    utils.cpp
 )
 
 target_link_libraries(
@@ -15,5 +16,3 @@ install(
     TARGETS cminusfc
     RUNTIME DESTINATION bin
 )
-
-

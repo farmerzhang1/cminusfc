@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <memory>
+#include <filesystem>
 
 using namespace std::literals::string_literals;
 
@@ -76,7 +77,9 @@ int main(int argc, char **argv) {
     output_stream << IR;
     output_stream.close();
     if (!emit) {
-        auto command_string = "clang -O0 -w "s + target_path + ".ll -o " + target_path + " -L. -lcminus_io";
+        std::string lib = CMAKE_LIBRARY_OUTPUT_DIRECTORY;
+        auto command_string = "clang -O0 -w "s + target_path + ".ll -o " + target_path + " -L" + lib + " -lcminus_io";
+        std::cout << command_string << std::endl;
         int re_code0 = std::system(command_string.c_str());
         command_string = "rm "s + target_path + ".ll";
         int re_code1 = std::system(command_string.c_str());

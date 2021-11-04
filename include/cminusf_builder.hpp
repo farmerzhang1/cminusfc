@@ -9,8 +9,6 @@
 #include "ast.hpp"
 #include <map>
 
-
-
 class Scope {
 public:
     // enter a new scope
@@ -102,6 +100,8 @@ public:
     std::unique_ptr<Module> getModule() {
         return std::move(module);
     }
+    Type* type(CminusType t) const;
+    Value* val = nullptr;
 private:
     virtual void visit(ASTProgram &) override final;
     virtual void visit(ASTNum &) override final;

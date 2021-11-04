@@ -41,13 +41,13 @@ Module *Function::get_parent() const
 }
 
 void Function::remove(BasicBlock* bb)
-{ 
-    basic_blocks_.remove(bb); 
-    for (auto pre : bb->get_pre_basic_blocks()) 
+{
+    basic_blocks_.remove(bb);
+    for (auto pre : bb->get_pre_basic_blocks())
     {
         pre->remove_succ_basic_block(bb);
     }
-    for (auto succ : bb->get_succ_basic_blocks()) 
+    for (auto succ : bb->get_succ_basic_blocks())
     {
         succ->remove_pre_basic_block(bb);
     }
@@ -110,22 +110,22 @@ std::string Function::print()
 {
     set_instr_name();
     std::string func_ir;
-    if ( this->is_declaration() ) 
+    if ( this->is_declaration() )
     {
         func_ir += "declare ";
-    }    
+    }
     else
     {
         func_ir += "define ";
     }
-    
+
     func_ir += this->get_return_type()->print();
     func_ir += " ";
     func_ir += print_as_op(this, false);
     func_ir += "(";
 
     //print arg
-    if ( this->is_declaration() ) 
+    if ( this->is_declaration() )
     {
         for ( int i = 0 ; i < this->get_num_of_args() ; i++)
         {
@@ -161,7 +161,7 @@ std::string Function::print()
         }
         func_ir += "}";
     }
-    
+
     return func_ir;
 }
 
