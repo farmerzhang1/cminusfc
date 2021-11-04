@@ -112,7 +112,6 @@ struct ASTNum: ASTFactor {
 
 struct ASTVarDeclaration: ASTDeclaration {
     virtual void accept(ASTVisitor &) override final;
-    CminusType type;
     std::shared_ptr<ASTNum> num;
 };
 
