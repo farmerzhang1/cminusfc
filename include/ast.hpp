@@ -172,7 +172,7 @@ struct ASTAssignExpression: ASTExpression {
 
 struct ASTSimpleExpression: ASTExpression {
     virtual void accept(ASTVisitor &) override final;
-    std::shared_ptr<ASTAdditiveExpression> additive_expression_l;
+    std::shared_ptr<ASTAdditiveExpression> additive_expression_l; // lhs is always nonempty
     std::shared_ptr<ASTAdditiveExpression> additive_expression_r;
     RelOp op;
 };

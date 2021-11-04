@@ -43,7 +43,10 @@ public:
 
         return nullptr;
     }
-
+    // return global variables (functions or vars)
+    Value* get_global(std::string& name) const {
+        return inner.at(0).at(name);
+    }
 private:
     std::vector<std::map<std::string, Value *>> inner;
 };

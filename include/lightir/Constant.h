@@ -22,10 +22,10 @@ class ConstantInt : public Constant
 {
 private:
     int value_;
-    ConstantInt(Type* ty,int val) 
+    ConstantInt(Type* ty,int val)
         : Constant(ty,"",0),value_(val) {}
 public:
-    
+
     static int get_value(ConstantInt *const_val) { return const_val->value_; }
     int get_value() { return value_; }
     static ConstantInt *get(int val, Module *m);
@@ -40,19 +40,19 @@ private:
 
     ConstantArray(ArrayType *ty, const std::vector<Constant*> &val);
 public:
-    
+
     ~ConstantArray()=default;
 
     Constant* get_element_value(int index);
 
-    unsigned get_size_of_array() { return const_array.size(); } 
+    unsigned get_size_of_array() { return const_array.size(); }
 
     static ConstantArray *get(ArrayType *ty, const std::vector<Constant*> &val);
 
     virtual std::string print() override;
 };
 
-class ConstantZero : public Constant 
+class ConstantZero : public Constant
 {
 private:
     ConstantZero(Type *ty)
@@ -62,7 +62,7 @@ public:
     virtual std::string print() override;
 };
 
-class ConstantFP : public Constant 
+class ConstantFP : public Constant
 {
 private:
     float val_;
