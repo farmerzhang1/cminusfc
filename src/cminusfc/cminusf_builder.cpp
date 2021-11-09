@@ -141,7 +141,7 @@ void CminusfBuilder::visit(ASTSimpleExpression &node)
         {
             lhs = convert(lhs, module->get_int32_type()); // convert to i32 if it's i1
             rhs = convert(rhs, module->get_int32_type());
-            val = m2[node.op](lhs, rhs);
+            val = comp_int_map[node.op](lhs, rhs);
         }
         else // at least one is float
         {
@@ -149,7 +149,7 @@ void CminusfBuilder::visit(ASTSimpleExpression &node)
             rhs = convert(rhs, module->get_float_type());
             // 两个差不多的 switch 太丑了！！！ done!
             // 可不可以用一个 map, 从 operator 映射到 函数
-            val = m3[node.op](lhs, rhs);
+            val = comp_float_map[node.op](lhs, rhs);
         }
     }
 }
@@ -170,13 +170,13 @@ void CminusfBuilder::visit(ASTAdditiveExpression &node)
         {
             lhs = convert(lhs, module->get_int32_type());
             rhs = convert(rhs, module->get_int32_type());
-            val = m[node.op](lhs, rhs);
+            val = add_int_map[node.op](lhs, rhs);
         }
         else
         {
             lhs = convert(lhs, module->get_float_type());
             rhs = convert(rhs, module->get_float_type());
-            val = m1[node.op](lhs, rhs);
+            val = add_float_map[node.op](lhs, rhs);
         }
     }
 }
@@ -197,13 +197,13 @@ void CminusfBuilder::visit(ASTTerm &node)
         {
             lhs = convert(lhs, module->get_int32_type());
             rhs = convert(rhs, module->get_int32_type());
-            val = map_int_mul[node.op](lhs, rhs);
+            val = mul_int_map[node.op](lhs, rhs);
         }
         else
         {
             lhs = convert(lhs, module->get_float_type());
             rhs = convert(rhs, module->get_float_type());
-            val = map_f_mul[node.op](lhs, rhs);
+            val = mul_float_map[node.op](lhs, rhs);
         }
     }
 }

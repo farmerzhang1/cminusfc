@@ -110,6 +110,25 @@ public:
         scope.push("output", output_fun);
         scope.push("outputFloat", output_float_fun);
         scope.push("neg_idx_except", neg_idx_except_fun);
+        // static_assert(this->add_int_map.contains(AddOp::OP_PLUS)); // 打咩！ please refer to
+        // https://stackoverflow.com/questions/30620356/how-can-i-ensure-that-each-case-defined-in-an-enum-class-is-treated-e-g-using
+
+        // do some assertions here to ensure all enum members are covered
+        for (const auto &enumCase : std::vector<AddOp>{AddOp::OP_PLUS, AddOp::OP_MINUS})
+        {
+            assert(add_int_map.contains(enumCase));
+            assert(add_float_map.contains(enumCase));
+        }
+        for (const auto &enumCase : std::vector<MulOp>{MulOp::OP_MUL, MulOp::OP_DIV})
+        {
+            assert(mul_int_map.contains(enumCase));
+            assert(mul_float_map.contains(enumCase));
+        }
+        for (const auto &enumCase : std::vector<RelOp>{RelOp::OP_EQ, RelOp::OP_NEQ, RelOp::OP_LT, RelOp::OP_LE, RelOp::OP_GT, RelOp::OP_GE})
+        {
+            assert(comp_int_map.contains(enumCase));
+            assert(comp_float_map.contains(enumCase));
+        }
     }
 
     std::unique_ptr<Module> getModule()
@@ -119,27 +138,27 @@ public:
     Type *type(CminusType t) const;
     Value *convert(Value *n, Type *to);
     Value *val = nullptr;
-    std::map<AddOp, std::function<BinaryInst *(Value *, Value *)>> m = {
+    std::map<AddOp, std::function<BinaryInst *(Value *, Value *)>> add_int_map = {
         {AddOp::OP_PLUS, [this](Value *l, Value *r)
          { return builder->create_iadd(l, r); }},
         {AddOp::OP_MINUS, [this](Value *l, Value *r)
          { return builder->create_isub(l, r); }}};
-    std::map<AddOp, std::function<BinaryInst *(Value *, Value *)>> m1 = {
+    std::map<AddOp, std::function<BinaryInst *(Value *, Value *)>> add_float_map = {
         {AddOp::OP_PLUS, [this](Value *l, Value *r)
          { return builder->create_fadd(l, r); }},
         {AddOp::OP_MINUS, [this](Value *l, Value *r)
          { return builder->create_fsub(l, r); }}};
-    std::map<MulOp, std::function<BinaryInst *(Value *, Value *)>> map_int_mul = {
+    std::map<MulOp, std::function<BinaryInst *(Value *, Value *)>> mul_int_map = {
         {MulOp::OP_MUL, [this](Value *l, Value *r)
          { return builder->create_imul(l, r); }},
         {MulOp::OP_DIV, [this](Value *l, Value *r)
          { return builder->create_isdiv(l, r); }}};
-    std::map<MulOp, std::function<BinaryInst *(Value *, Value *)>> map_f_mul = {
+    std::map<MulOp, std::function<BinaryInst *(Value *, Value *)>> mul_float_map = {
         {MulOp::OP_MUL, [this](Value *l, Value *r)
          { return builder->create_fmul(l, r); }},
         {MulOp::OP_DIV, [this](Value *l, Value *r)
          { return builder->create_fdiv(l, r); }}};
-    std::map<RelOp, std::function<CmpInst *(Value *, Value *)>> m2 = {
+    std::map<RelOp, std::function<CmpInst *(Value *, Value *)>> comp_int_map = {
         {RelOp::OP_EQ, [this](Value *l, Value *r)
          { return builder->create_icmp_eq(l, r); }},
         {RelOp::OP_NEQ, [this](Value *l, Value *r)
@@ -152,7 +171,7 @@ public:
          { return builder->create_icmp_le(l, r); }},
         {RelOp::OP_LT, [this](Value *l, Value *r)
          { return builder->create_icmp_lt(l, r); }}};
-    std::map<RelOp, std::function<FCmpInst *(Value *, Value *)>> m3 = {
+    std::map<RelOp, std::function<FCmpInst *(Value *, Value *)>> comp_float_map = {
         {RelOp::OP_EQ, [this](Value *l, Value *r)
          { return builder->create_fcmp_eq(l, r); }},
         {RelOp::OP_NEQ, [this](Value *l, Value *r)

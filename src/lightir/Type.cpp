@@ -167,6 +167,7 @@ IntegerType *IntegerType::get(unsigned num_bits, Module *m )
         return m->get_int32_type();
     } else {
         assert("IntegerType::get has error num_bits");
+        return nullptr; // remove warning
     }
 }
 

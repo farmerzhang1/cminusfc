@@ -54,9 +54,9 @@ AST::transform_node_iter(syntax_tree_node *n) {
         auto node = new ASTVarDeclaration();
 
         if (_STR_EQ(n->children[0]->children[0]->name, "int"))
-            node->type = TYPE_INT;
+            node->type = CminusType::TYPE_INT;
         else
-            node->type = TYPE_FLOAT;
+            node->type = CminusType::TYPE_FLOAT;
 
         if (n->children_num == 3) {
             node->id = n->children[1]->name;
@@ -65,7 +65,7 @@ AST::transform_node_iter(syntax_tree_node *n) {
             int num = std::stoi(n->children[3]->name);
             auto num_node = std::make_shared<ASTNum>();
             num_node->i_val = num;
-            num_node->type = TYPE_INT;
+            num_node->type = CminusType::TYPE_INT;
             node->num = num_node;
         } else {
             std::cerr << "[ast]: var-declaration transform failure!" << std::endl;
@@ -75,11 +75,11 @@ AST::transform_node_iter(syntax_tree_node *n) {
     } else if (_STR_EQ(n->name, "fun-declaration")) {
         auto node = new ASTFunDeclaration();
         if (_STR_EQ(n->children[0]->children[0]->name, "int")) {
-            node->type = TYPE_INT;
+            node->type = CminusType::TYPE_INT;
         } else if (_STR_EQ(n->children[0]->children[0]->name, "float")) {
-            node->type = TYPE_FLOAT;
+            node->type = CminusType::TYPE_FLOAT;
         } else {
-            node->type = TYPE_VOID;
+            node->type = CminusType::TYPE_VOID;
         }
 
         node->id = n->children[1]->name;
@@ -115,9 +115,9 @@ AST::transform_node_iter(syntax_tree_node *n) {
     } else if (_STR_EQ(n->name, "param")) {
         auto node = new ASTParam();
         if (_STR_EQ(n->children[0]->children[0]->name, "int"))
-            node->type = TYPE_INT;
+            node->type = CminusType::TYPE_INT;
         else
-            node->type = TYPE_FLOAT;
+            node->type = CminusType::TYPE_FLOAT;
         node->id = n->children[1]->name;
         if (n->children_num > 2)
             node->isarray = true;
@@ -268,17 +268,17 @@ AST::transform_node_iter(syntax_tree_node *n) {
         if (n->children_num == 3) {
             auto op_name = n->children[1]->children[0]->name;
             if (_STR_EQ(op_name, "<="))
-                node->op = OP_LE;
+                node->op = RelOp::OP_LE;
             else if (_STR_EQ(op_name, "<"))
-                node->op = OP_LT;
+                node->op = RelOp::OP_LT;
             else if (_STR_EQ(op_name, ">"))
-                node->op = OP_GT;
+                node->op = RelOp::OP_GT;
             else if (_STR_EQ(op_name, ">="))
-                node->op = OP_GE;
+                node->op = RelOp::OP_GE;
             else if (_STR_EQ(op_name, "=="))
-                node->op = OP_EQ;
+                node->op = RelOp::OP_EQ;
             else if (_STR_EQ(op_name, "!="))
-                node->op = OP_NEQ;
+                node->op = RelOp::OP_NEQ;
 
             auto expr_node_2 =
                 static_cast<ASTAdditiveExpression *>(
@@ -298,9 +298,9 @@ AST::transform_node_iter(syntax_tree_node *n) {
 
             auto op_name = n->children[1]->children[0]->name;
             if (_STR_EQ(op_name, "+"))
-                node->op = OP_PLUS;
+                node->op = AddOp::OP_PLUS;
             else if (_STR_EQ(op_name, "-"))
-                node->op = OP_MINUS;
+                node->op = AddOp::OP_MINUS;
 
             auto term_node =
                 static_cast<ASTTerm *>(
@@ -324,9 +324,9 @@ AST::transform_node_iter(syntax_tree_node *n) {
 
             auto op_name = n->children[1]->children[0]->name;
             if (_STR_EQ(op_name, "*"))
-                node->op = OP_MUL;
+                node->op = MulOp::OP_MUL;
             else if (_STR_EQ(op_name, "/"))
-                node->op = OP_DIV;
+                node->op = MulOp::OP_DIV;
 
             auto factor_node =
                 static_cast<ASTFactor *>(
@@ -351,10 +351,10 @@ AST::transform_node_iter(syntax_tree_node *n) {
         else {
             auto num_node = new ASTNum();
             if (_STR_EQ(name, "integer")) {
-                num_node->type = TYPE_INT;
+                num_node->type = CminusType::TYPE_INT;
                 num_node->i_val = std::stoi(n->children[i]->children[0]->name);
             } else if (_STR_EQ(name, "float")) {
-                num_node->type = TYPE_FLOAT;
+                num_node->type = CminusType::TYPE_FLOAT;
                 num_node->f_val = std::stof(n->children[i]->children[0]->name);
             } else {
                 _AST_NODE_ERROR_
@@ -424,9 +424,9 @@ void ASTPrinter::visit(ASTProgram &node) {
 
 void ASTPrinter::visit(ASTNum &node) {
     _DEBUG_PRINT_N_(depth);
-    if (node.type == TYPE_INT) {
+    if (node.type == CminusType::TYPE_INT) {
         std::cout << "num (int): " << node.i_val << std::endl;
-    } else if (node.type == TYPE_FLOAT) {
+    } else if (node.type == CminusType::TYPE_FLOAT) {
         std::cout << "num (float): " << node.f_val << std::endl;
     } else {
         _AST_NODE_ERROR_
@@ -539,17 +539,17 @@ void ASTPrinter::visit(ASTSimpleExpression &node) {
         std::cout << std::endl;
     } else {
         std::cout << ": ";
-        if (node.op == OP_LT) {
+        if (node.op == RelOp::OP_LT) {
             std::cout << "<";
-        } else if (node.op == OP_LE) {
+        } else if (node.op == RelOp::OP_LE) {
             std::cout << "<=";
-        } else if (node.op == OP_GE) {
+        } else if (node.op == RelOp::OP_GE) {
             std::cout << ">=";
-        } else if (node.op == OP_GT) {
+        } else if (node.op == RelOp::OP_GT) {
             std::cout << ">";
-        } else if (node.op == OP_EQ) {
+        } else if (node.op == RelOp::OP_EQ) {
             std::cout << "==";
-        } else if (node.op == OP_NEQ) {
+        } else if (node.op == RelOp::OP_NEQ) {
             std::cout << "!=";
         } else {
             std::abort();
@@ -570,9 +570,9 @@ void ASTPrinter::visit(ASTAdditiveExpression &node) {
         std::cout << std::endl;
     } else {
         std::cout << ": ";
-        if (node.op == OP_PLUS) {
+        if (node.op == AddOp::OP_PLUS) {
             std::cout << "+";
-        } else if (node.op == OP_MINUS) {
+        } else if (node.op == AddOp::OP_MINUS) {
             std::cout << "-";
         } else {
             std::abort();
@@ -606,9 +606,9 @@ void ASTPrinter::visit(ASTTerm &node) {
         std::cout << std::endl;
     } else {
         std::cout << ": ";
-        if (node.op == OP_MUL) {
+        if (node.op == MulOp::OP_MUL) {
             std::cout << "*";
-        } else if (node.op == OP_DIV) {
+        } else if (node.op == MulOp::OP_DIV) {
             std::cout << "/";
         } else {
             std::abort();

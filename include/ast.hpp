@@ -8,13 +8,13 @@ extern "C" {
 #include <memory>
 #include <string>
 
-enum CminusType {
+enum class CminusType {
     TYPE_INT,
     TYPE_FLOAT,
     TYPE_VOID
 };
 
-enum RelOp {
+enum class RelOp {
     // <=
     OP_LE,
     // <
@@ -29,14 +29,14 @@ enum RelOp {
     OP_NEQ
 };
 
-enum AddOp {
+enum class AddOp {
     // +
     OP_PLUS,
     // -
     OP_MINUS
 };
 
-enum MulOp {
+enum class MulOp {
     // *
     OP_MUL,
     // /
