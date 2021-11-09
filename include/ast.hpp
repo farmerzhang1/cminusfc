@@ -97,9 +97,10 @@ struct ASTProgram : ASTNode {
 struct ASTDeclaration: ASTNode {
     CminusType type;
     std::string id; // 这里是数字 int or float
+    virtual ~ASTDeclaration() {}
 };
 
-struct ASTFactor: ASTNode { };
+struct ASTFactor: ASTNode { virtual ~ASTFactor(){} };
 
 struct ASTNum: ASTFactor {
     virtual void accept(ASTVisitor &) override final;
@@ -129,7 +130,7 @@ struct ASTParam: ASTNode {
     bool isarray;
 };
 
-struct ASTStatement : ASTNode { };
+struct ASTStatement : ASTNode { virtual ~ASTStatement() {} };
 
 struct ASTCompoundStmt: ASTStatement {
     virtual void accept(ASTVisitor&) override final;
