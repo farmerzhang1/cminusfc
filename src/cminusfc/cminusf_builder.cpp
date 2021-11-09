@@ -1,9 +1,6 @@
 #include "cminusf_builder.hpp"
+#include "utils.hpp"
 #include <algorithm>
-#define CONST_FP(num) \
-    ConstantFP::get((float)num, module.get())
-#define CONST_ZERO(type) \
-    ConstantZero::get(var_type, module.get())
 
 // You can define global variables here
 // to store state
@@ -24,25 +21,31 @@ void CminusfBuilder::visit(ASTProgram &node)
 
 void CminusfBuilder::visit(ASTNum &node)
 {
-    switch(node.type) {
-        case CminusType::TYPE_FLOAT: val = CONST_FP(node.f_val); break;
-        case CminusType::TYPE_INT  : val = ConstantInt::get(node.i_val, module.get()); break;
-        default: /* [[unlikely]] (wanted to use this qwq) */ break;
+    switch (node.type)
+    {
+    case CminusType::TYPE_FLOAT:
+        val = CONST_FP(node.f_val);
+        break;
+    case CminusType::TYPE_INT:
+        val = ConstantInt::get(node.i_val, module.get());
+        break;
+    default: /* [[unlikely]] (wanted to use this qwq) */
+        break;
     }
 }
 
 void CminusfBuilder::visit(ASTVarDeclaration &node)
 {
-    Value *v;
+    Value *v; // do we still need it?
     Type *t;
     t = type(node.type); // utility
     if (node.num)        // array type
         t = module->get_array_type(t, node.num->i_val);
 
     if (scope.in_global())
-        v = GlobalVariable::create(node.id, module.get(), type(node.type), false, nullptr);
+        val = GlobalVariable::create(node.id, module.get(), type(node.type), false, nullptr);
     else
-        v = builder->create_alloca(t);
+        val = builder->create_alloca(t);
 
     if (!scope.push(node.id, v))
     {
@@ -68,8 +71,11 @@ void CminusfBuilder::visit(ASTFunDeclaration &node)
     auto f = Function::create(func_type, node.id, module.get());
     size_t i{0};
     // 声明函数时没有参数名，这里设置一下
-    std::for_each(f->arg_begin(), f->arg_end(), [i, node](Argument *arg)
-                  { arg->set_name(node.params[i]->id); });
+    // std::for_each(f->arg_begin(), f->arg_end(), [i, node](Argument *arg)
+    //               { arg->set_name(node.params[i]->id); });
+    for (auto &arg : f->get_args())
+        arg->set_name(node.params[i++]->id);
+
     scope.enter();
     auto bb = BasicBlock::create(module.get(), "entry", f);
     builder->set_insert_point(bb);
@@ -83,15 +89,16 @@ void CminusfBuilder::visit(ASTParam &node)
 
 void CminusfBuilder::visit(ASTCompoundStmt &node)
 {
-    std::for_each(node.local_declarations.begin(), node.local_declarations.end(), [this](auto &decl_ptr)
-                  { decl_ptr->accept(*this); });
-    std::for_each(node.statement_list.begin(), node.statement_list.end(), [this](auto &stmt_ptr)
-                  { stmt_ptr->accept(*this); });
+    for (auto &decl_ptr : node.local_declarations)
+        decl_ptr->accept(*this);
+    for (auto &stmt_ptr : node.statement_list)
+        stmt_ptr->accept(*this);
 }
 
 void CminusfBuilder::visit(ASTExpressionStmt &node)
 {
-    if (node.expression) node.expression->accept(*this);
+    if (node.expression)
+        node.expression->accept(*this);
 }
 
 void CminusfBuilder::visit(ASTSelectionStmt &node)
@@ -126,38 +133,163 @@ void CminusfBuilder::visit(ASTSimpleExpression &node)
 {
     node.additive_expression_l->accept(*this);
     auto lhs = val;
-    if (node.additive_expression_r) {
+    if (node.additive_expression_r)
+    {
         node.additive_expression_r->accept(*this);
         auto rhs = val;
-        // builder->create // TODO: how to distinguish its type?
+        if (both_int(lhs, rhs))
+        {
+            lhs = convert(lhs, module->get_int32_type()); // convert to i32 if it's i1
+            rhs = convert(rhs, module->get_int32_type());
+            switch (node.op)
+            {
+            case RelOp::OP_EQ:
+                val = builder->create_icmp_eq(lhs, rhs);
+                break;
+            case RelOp::OP_GE:
+                val = builder->create_icmp_ge(lhs, rhs);
+                break;
+            case RelOp::OP_GT:
+                val = builder->create_icmp_gt(lhs, rhs);
+                break;
+            case RelOp::OP_LE:
+                val = builder->create_icmp_le(lhs, rhs);
+                break;
+            case RelOp::OP_LT:
+                val = builder->create_icmp_lt(lhs, rhs);
+                break;
+            case RelOp::OP_NEQ:
+                val = builder->create_icmp_ne(lhs, rhs);
+                break;
+            }
+        }
+        else // at least one is float
+        {
+            lhs = convert(lhs, module->get_float_type()); // convert to float, return it directly if is float already
+            rhs = convert(rhs, module->get_float_type());
+            // TODO: 两个差不多的 switch 太丑了！！！
+            // 可不可以用一个 map, 从 operator 映射到 函数
+            switch (node.op)
+            {
+            case RelOp::OP_EQ:
+                val = builder->create_fcmp_eq(lhs, rhs);
+                break;
+            case RelOp::OP_GE:
+                val = builder->create_fcmp_ge(lhs, rhs);
+                break;
+            case RelOp::OP_GT:
+                val = builder->create_fcmp_gt(lhs, rhs);
+                break;
+            case RelOp::OP_LE:
+                val = builder->create_fcmp_le(lhs, rhs);
+                break;
+            case RelOp::OP_LT:
+                val = builder->create_fcmp_lt(lhs, rhs);
+                break;
+            case RelOp::OP_NEQ:
+                val = builder->create_fcmp_ne(lhs, rhs);
+                break;
+            }
+        }
     }
 }
 
 void CminusfBuilder::visit(ASTAdditiveExpression &node)
 {
-    if (node.additive_expression) {
-        // TODO
+    Value *lhs = nullptr;
+    if (node.additive_expression)
+    {
+        node.additive_expression->accept(*this);
+        lhs = val;
     }
     node.term->accept(*this);
+    Value *rhs = val;
+    if (node.additive_expression)
+    {
+        if (both_int(lhs, rhs))
+        {
+            lhs = convert(lhs, module->get_int32_type());
+            rhs = convert(rhs, module->get_int32_type());
+            switch (node.op)
+            {
+            case AddOp::OP_PLUS:
+                val = builder->create_iadd(lhs, rhs);
+                break;
+            case AddOp::OP_MINUS:
+                val = builder->create_isub(lhs, rhs);
+                break;
+            }
+        }
+        else
+        {
+            lhs = convert(lhs, module->get_float_type());
+            rhs = convert(rhs, module->get_float_type());
+            switch (node.op)
+            {
+            case AddOp::OP_PLUS:
+                val = builder->create_fadd(lhs, rhs);
+                break;
+            case AddOp::OP_MINUS:
+                val = builder->create_fsub(lhs, rhs);
+                break;
+            }
+        }
+    }
 }
 
 void CminusfBuilder::visit(ASTTerm &node)
 {
-    if (node.term) {
-        // TODO
-    } else {
-        node.factor->accept(*this);
+    Value *lhs = nullptr;
+    if (node.term)
+    {
+        node.term->accept(*this);
+        lhs = val;
+    }
+    node.factor->accept(*this);
+    Value *rhs = val;
+    if (node.term)
+    {
+        if (both_int(lhs, rhs))
+        {
+            lhs = convert(lhs, module->get_int32_type());
+            rhs = convert(rhs, module->get_int32_type());
+            switch (node.op)
+            {
+            case MulOp::OP_MUL:
+                val = builder->create_imul(lhs, rhs);
+                break;
+            case MulOp::OP_DIV:
+                val = builder->create_isdiv(lhs, rhs);
+                break;
+            }
+        }
+        else
+        {
+            lhs = convert(lhs, module->get_float_type());
+            rhs = convert(rhs, module->get_float_type());
+            switch (node.op)
+            {
+            case MulOp::OP_MUL:
+                val = builder->create_fmul(lhs, rhs);
+                break;
+            case MulOp::OP_DIV:
+                val = builder->create_fdiv(lhs, rhs);
+                break;
+            }
+        }
     }
 }
 
 void CminusfBuilder::visit(ASTCall &node)
 {
-    auto func = scope.get_global(node.id);
+    auto func = static_cast<Function *>(scope.get_global(node.id));
+    // func->get_function_type()->get_param_type(0);
     std::vector<Value *> args;
-    std::transform(node.args.begin(), node.args.end(), std::back_inserter(args), [this](auto& e)
+    size_t i = 0;
+    std::transform(node.args.begin(), node.args.end(), std::back_inserter(args), [this, &i, func](auto &e)
                    {
                        e->accept(*this);
-                       return val;
+                       return convert(val, func->get_function_type()->get_param_type(i++));
                    });
-    builder->create_call(func, std::move(args));
+    val = builder->create_call(func, std::move(args));
 }

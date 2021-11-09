@@ -3,6 +3,7 @@ add_executable(
     cminusfc.cpp
     cminusf_builder.cpp
     utils.cpp
+    utils.hpp # can i do this?
 )
 
 target_link_libraries(
