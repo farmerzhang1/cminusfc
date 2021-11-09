@@ -2,6 +2,13 @@
 #include "utils.hpp"
 #include <algorithm>
 
+// use these macros to get constant value
+#define CONST_FP(num) \
+    ConstantFP::get((float)num, module.get())
+#define CONST_INT(num) \
+    ConstantInt::get(num, module.get())
+
+
 // You can define global variables here
 // to store state
 
