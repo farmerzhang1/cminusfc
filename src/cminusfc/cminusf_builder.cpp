@@ -141,55 +141,15 @@ void CminusfBuilder::visit(ASTSimpleExpression &node)
         {
             lhs = convert(lhs, module->get_int32_type()); // convert to i32 if it's i1
             rhs = convert(rhs, module->get_int32_type());
-            switch (node.op)
-            {
-            case RelOp::OP_EQ:
-                val = builder->create_icmp_eq(lhs, rhs);
-                break;
-            case RelOp::OP_GE:
-                val = builder->create_icmp_ge(lhs, rhs);
-                break;
-            case RelOp::OP_GT:
-                val = builder->create_icmp_gt(lhs, rhs);
-                break;
-            case RelOp::OP_LE:
-                val = builder->create_icmp_le(lhs, rhs);
-                break;
-            case RelOp::OP_LT:
-                val = builder->create_icmp_lt(lhs, rhs);
-                break;
-            case RelOp::OP_NEQ:
-                val = builder->create_icmp_ne(lhs, rhs);
-                break;
-            }
+            val = m2[node.op](lhs, rhs);
         }
         else // at least one is float
         {
             lhs = convert(lhs, module->get_float_type()); // convert to float, return it directly if is float already
             rhs = convert(rhs, module->get_float_type());
-            // TODO: 两个差不多的 switch 太丑了！！！
+            // 两个差不多的 switch 太丑了！！！ done!
             // 可不可以用一个 map, 从 operator 映射到 函数
-            switch (node.op)
-            {
-            case RelOp::OP_EQ:
-                val = builder->create_fcmp_eq(lhs, rhs);
-                break;
-            case RelOp::OP_GE:
-                val = builder->create_fcmp_ge(lhs, rhs);
-                break;
-            case RelOp::OP_GT:
-                val = builder->create_fcmp_gt(lhs, rhs);
-                break;
-            case RelOp::OP_LE:
-                val = builder->create_fcmp_le(lhs, rhs);
-                break;
-            case RelOp::OP_LT:
-                val = builder->create_fcmp_lt(lhs, rhs);
-                break;
-            case RelOp::OP_NEQ:
-                val = builder->create_fcmp_ne(lhs, rhs);
-                break;
-            }
+            val = m3[node.op](lhs, rhs);
         }
     }
 }
@@ -210,29 +170,13 @@ void CminusfBuilder::visit(ASTAdditiveExpression &node)
         {
             lhs = convert(lhs, module->get_int32_type());
             rhs = convert(rhs, module->get_int32_type());
-            switch (node.op)
-            {
-            case AddOp::OP_PLUS:
-                val = builder->create_iadd(lhs, rhs);
-                break;
-            case AddOp::OP_MINUS:
-                val = builder->create_isub(lhs, rhs);
-                break;
-            }
+            val = m[node.op](lhs, rhs);
         }
         else
         {
             lhs = convert(lhs, module->get_float_type());
             rhs = convert(rhs, module->get_float_type());
-            switch (node.op)
-            {
-            case AddOp::OP_PLUS:
-                val = builder->create_fadd(lhs, rhs);
-                break;
-            case AddOp::OP_MINUS:
-                val = builder->create_fsub(lhs, rhs);
-                break;
-            }
+            val = m1[node.op](lhs, rhs);
         }
     }
 }
@@ -253,29 +197,13 @@ void CminusfBuilder::visit(ASTTerm &node)
         {
             lhs = convert(lhs, module->get_int32_type());
             rhs = convert(rhs, module->get_int32_type());
-            switch (node.op)
-            {
-            case MulOp::OP_MUL:
-                val = builder->create_imul(lhs, rhs);
-                break;
-            case MulOp::OP_DIV:
-                val = builder->create_isdiv(lhs, rhs);
-                break;
-            }
+            val = map_int_mul[node.op](lhs, rhs);
         }
         else
         {
             lhs = convert(lhs, module->get_float_type());
             rhs = convert(rhs, module->get_float_type());
-            switch (node.op)
-            {
-            case MulOp::OP_MUL:
-                val = builder->create_fmul(lhs, rhs);
-                break;
-            case MulOp::OP_DIV:
-                val = builder->create_fdiv(lhs, rhs);
-                break;
-            }
+            val = map_f_mul[node.op](lhs, rhs);
         }
     }
 }

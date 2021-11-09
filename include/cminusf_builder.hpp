@@ -8,6 +8,7 @@
 #include "Type.h"
 #include "ast.hpp"
 #include <map>
+#include <functional>
 
 class Scope
 {
@@ -118,6 +119,52 @@ public:
     Type *type(CminusType t) const;
     Value *convert(Value *n, Type *to);
     Value *val = nullptr;
+    std::map<AddOp, std::function<BinaryInst *(Value *, Value *)>> m = {
+        {AddOp::OP_PLUS, [this](Value *l, Value *r)
+         { return builder->create_iadd(l, r); }},
+        {AddOp::OP_MINUS, [this](Value *l, Value *r)
+         { return builder->create_isub(l, r); }}};
+    std::map<AddOp, std::function<BinaryInst *(Value *, Value *)>> m1 = {
+        {AddOp::OP_PLUS, [this](Value *l, Value *r)
+         { return builder->create_fadd(l, r); }},
+        {AddOp::OP_MINUS, [this](Value *l, Value *r)
+         { return builder->create_fsub(l, r); }}};
+    std::map<MulOp, std::function<BinaryInst *(Value *, Value *)>> map_int_mul = {
+        {MulOp::OP_MUL, [this](Value *l, Value *r)
+         { return builder->create_imul(l, r); }},
+        {MulOp::OP_DIV, [this](Value *l, Value *r)
+         { return builder->create_isdiv(l, r); }}};
+    std::map<MulOp, std::function<BinaryInst *(Value *, Value *)>> map_f_mul = {
+        {MulOp::OP_MUL, [this](Value *l, Value *r)
+         { return builder->create_fmul(l, r); }},
+        {MulOp::OP_DIV, [this](Value *l, Value *r)
+         { return builder->create_fdiv(l, r); }}};
+    std::map<RelOp, std::function<CmpInst *(Value *, Value *)>> m2 = {
+        {RelOp::OP_EQ, [this](Value *l, Value *r)
+         { return builder->create_icmp_eq(l, r); }},
+        {RelOp::OP_NEQ, [this](Value *l, Value *r)
+         { return builder->create_icmp_ne(l, r); }},
+        {RelOp::OP_GE, [this](Value *l, Value *r)
+         { return builder->create_icmp_ge(l, r); }},
+        {RelOp::OP_GT, [this](Value *l, Value *r)
+         { return builder->create_icmp_gt(l, r); }},
+        {RelOp::OP_LE, [this](Value *l, Value *r)
+         { return builder->create_icmp_le(l, r); }},
+        {RelOp::OP_LT, [this](Value *l, Value *r)
+         { return builder->create_icmp_lt(l, r); }}};
+    std::map<RelOp, std::function<FCmpInst *(Value *, Value *)>> m3 = {
+        {RelOp::OP_EQ, [this](Value *l, Value *r)
+         { return builder->create_fcmp_eq(l, r); }},
+        {RelOp::OP_NEQ, [this](Value *l, Value *r)
+         { return builder->create_fcmp_ne(l, r); }},
+        {RelOp::OP_GE, [this](Value *l, Value *r)
+         { return builder->create_fcmp_ge(l, r); }},
+        {RelOp::OP_GT, [this](Value *l, Value *r)
+         { return builder->create_fcmp_gt(l, r); }},
+        {RelOp::OP_LE, [this](Value *l, Value *r)
+         { return builder->create_fcmp_le(l, r); }},
+        {RelOp::OP_LT, [this](Value *l, Value *r)
+         { return builder->create_fcmp_lt(l, r); }}};
 
 private:
     virtual void visit(ASTProgram &) override final;
@@ -140,6 +187,5 @@ private:
     IRBuilder *builder;
     Scope scope;
     std::unique_ptr<Module> module;
-    std::map<AddOp, Function> m;
 };
 #endif
