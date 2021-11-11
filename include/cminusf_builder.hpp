@@ -39,7 +39,7 @@ public:
         return result.second;
     }
 
-    Value *find(std::string name)
+    Value *find(std::string &name)
     {
         for (auto s = inner.rbegin(); s != inner.rend(); s++)
         {
@@ -49,11 +49,14 @@ public:
                 return iter->second;
             }
         }
-
         return nullptr;
     }
     // return global variables (functions or vars)
     Value *get_global(std::string &name) const
+    {
+        return inner.at(0).at(name);
+    }
+    Value *get_global(std::string &&name) const
     {
         return inner.at(0).at(name);
     }
@@ -138,6 +141,8 @@ public:
     Type *type(CminusType t) const;
     Value *convert(Value *n, Type *to);
     Value *val = nullptr;
+    bool storing = false;
+    size_t bb_counter{0};
     std::map<AddOp, std::function<BinaryInst *(Value *, Value *)>> add_int_map = {
         {AddOp::OP_PLUS, [this](Value *l, Value *r)
          { return builder->create_iadd(l, r); }},

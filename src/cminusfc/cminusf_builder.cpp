@@ -58,6 +58,7 @@ void CminusfBuilder::visit(ASTVarDeclaration &node)
     if (!scope.push(node.id, val))
     {
         // why not just shadow it?
+        // well, c doesn't support it...
     }
 }
 
@@ -77,6 +78,7 @@ void CminusfBuilder::visit(ASTFunDeclaration &node)
                    { return this->type(param->type); });
     auto func_type = FunctionType::get(type(node.type), params);
     auto f = Function::create(func_type, node.id, module.get());
+    scope.push(node.id, f);
     size_t i{0};
     // 声明函数时没有参数名，这里设置一下
     // std::for_each(f->arg_begin(), f->arg_end(), [i, node](Argument *arg)
@@ -84,9 +86,9 @@ void CminusfBuilder::visit(ASTFunDeclaration &node)
     for (auto &arg : f->get_args())
         arg->set_name(node.params[i++]->id);
 
-    scope.enter();
     auto bb = BasicBlock::create(module.get(), "entry", f);
     builder->set_insert_point(bb);
+    bb_counter = 0;
     node.compound_stmt->accept(*this);
 }
 
@@ -97,10 +99,12 @@ void CminusfBuilder::visit(ASTParam &node)
 
 void CminusfBuilder::visit(ASTCompoundStmt &node)
 {
+    scope.enter();
     for (auto &decl_ptr : node.local_declarations)
         decl_ptr->accept(*this);
     for (auto &stmt_ptr : node.statement_list)
         stmt_ptr->accept(*this);
+    scope.exit();
 }
 
 void CminusfBuilder::visit(ASTExpressionStmt &node)
@@ -111,10 +115,54 @@ void CminusfBuilder::visit(ASTExpressionStmt &node)
 
 void CminusfBuilder::visit(ASTSelectionStmt &node)
 {
+    BasicBlock *falseBB = nullptr;
+    node.expression->accept(*this);
+    if (val->get_type()->get_size() > 1)
+    {
+        if (val->get_type()->is_integer_type())
+            val = comp_int_map[RelOp::OP_NEQ](val, CONST_INT(0));
+        else
+            val = comp_float_map[RelOp::OP_NEQ](val, CONST_FP(0));
+    }
+    auto trueBB = BasicBlock::create(module.get(), "true" + std::to_string(bb_counter++), builder->get_insert_block()->get_parent());
+    if (node.else_statement)
+        falseBB = BasicBlock::create(module.get(), "false" + std::to_string(bb_counter++), builder->get_insert_block()->get_parent());
+    auto out = BasicBlock::create(module.get(), "out" + std::to_string(bb_counter++), builder->get_insert_block()->get_parent());
+    builder->create_cond_br(val, trueBB, falseBB ? falseBB : out);
+    builder->set_insert_point(trueBB);
+    node.if_statement->accept(*this);
+    builder->create_br(out);
+    if (node.else_statement)
+    {
+        builder->set_insert_point(falseBB);
+        node.else_statement->accept(*this);
+        builder->create_br(out);
+    }
+    builder->set_insert_point(out);
 }
 
 void CminusfBuilder::visit(ASTIterationStmt &node)
 {
+    auto predicate = BasicBlock::create(module.get(), "predicate" + std::to_string(bb_counter++), builder->get_insert_block()->get_parent());
+    auto body = BasicBlock::create(module.get(), "body" + std::to_string(bb_counter++), builder->get_insert_block()->get_parent());
+    auto out = BasicBlock::create(module.get(), "out" + std::to_string(bb_counter++), builder->get_insert_block()->get_parent());
+
+    builder->create_br(predicate);
+
+    builder->set_insert_point(predicate);
+    node.expression->accept(*this);
+    if (val->get_type()->get_size() > 1)
+    {
+        if (val->get_type()->is_integer_type())
+            val = comp_int_map[RelOp::OP_NEQ](val, CONST_INT(0));
+        else
+            val = comp_float_map[RelOp::OP_NEQ](val, CONST_FP(0));
+    }
+    builder->create_cond_br(val, body, out);
+    builder->set_insert_point(body);
+    node.statement->accept(*this);
+    builder->create_br(predicate);
+    builder->set_insert_point(out);
 }
 
 void CminusfBuilder::visit(ASTReturnStmt &node)
@@ -126,7 +174,7 @@ void CminusfBuilder::visit(ASTReturnStmt &node)
     }
     else
         builder->create_void_ret();
-    scope.exit(); // where should we use terminator?
+    // scope.exit(); // where should we use terminator?
 }
 // TODO: 要返回(我说的是 让val等于)指针还是一个load（load比较正常但是赋值指令怎么弄呢？）
 // 是不是要加一个判断(看一下是不是赋值语句)
@@ -136,9 +184,18 @@ void CminusfBuilder::visit(ASTVar &node)
     if (node.expression)
     {
         node.expression->accept(*this);
-        Value* offset = convert(val, module->get_int32_type());
+        Value *offset = convert(val, module->get_int32_type());
         // if (offset->) TODO: how to check if offset is non-negative?
         // do i need to check it here? i think we'd need an interpreter ((()))
+        // or creating a branch (ugly!)
+        Value* nonnegative = comp_int_map[RelOp::OP_GE](offset, CONST_INT(0));
+        auto t = BasicBlock::create(module.get(), "true" + std::to_string(bb_counter++), builder->get_insert_block()->get_parent());
+        auto f = BasicBlock::create(module.get(), "false" + std::to_string(bb_counter++), builder->get_insert_block()->get_parent());
+        builder->create_cond_br(nonnegative, t, f);
+        builder->set_insert_point(f);
+        builder->create_call(scope.get_global("neg_idx_except"), {});
+        builder->create_br(t);
+        builder->set_insert_point(t);
         ptr = builder->create_gep(ptr, {CONST_INT(0), offset});
     }
     val = this->storing ? ptr : builder->create_load(ptr);
