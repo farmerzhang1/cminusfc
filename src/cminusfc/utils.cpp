@@ -1,12 +1,6 @@
 #include "cminusf_builder.hpp"
 #include "utils.hpp"
 
-// use these macros to get constant value
-#define CONST_FP(num) \
-    ConstantFP::get((float)num, module.get())
-#define CONST_ZERO(type) \
-    ConstantZero::get(var_type, module.get())
-#define ENTRY "entry"
 Type *CminusfBuilder::type(CminusType t) const
 {
     switch (t)
@@ -44,5 +38,6 @@ Value *CminusfBuilder::convert(Value *n, Type *to)
     {
         return builder->create_fptosi(n, to);
     }
+    assert("what type are you converting to?");
     return nullptr;
 }

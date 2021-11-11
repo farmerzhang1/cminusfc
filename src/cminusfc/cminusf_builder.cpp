@@ -2,13 +2,6 @@
 #include "utils.hpp"
 #include <algorithm>
 
-// use these macros to get constant value
-#define CONST_FP(num) \
-    ConstantFP::get((float)num, module.get())
-#define CONST_INT(num) \
-    ConstantInt::get(num, module.get())
-
-
 // You can define global variables here
 // to store state
 
@@ -50,11 +43,19 @@ void CminusfBuilder::visit(ASTVarDeclaration &node)
         t = module->get_array_type(t, node.num->i_val);
 
     if (scope.in_global())
-        val = GlobalVariable::create(node.id, module.get(), type(node.type), false, nullptr);
+    {
+        Constant *init = ConstantZero::get(t, module.get());
+        // if (node.num)
+        // {
+        //     std::vector<Constant *> vec(node.num->i_val, init);
+        //     init = ConstantArray::get(static_cast<ArrayType *>(t), vec);
+        // }
+        val = GlobalVariable::create(node.id, module.get(), t, false, init);
+    }
     else
         val = builder->create_alloca(t);
 
-    if (!scope.push(node.id, v))
+    if (!scope.push(node.id, val))
     {
         // why not just shadow it?
     }
@@ -127,13 +128,31 @@ void CminusfBuilder::visit(ASTReturnStmt &node)
         builder->create_void_ret();
     scope.exit(); // where should we use terminator?
 }
-
+// TODO: 要返回(我说的是 让val等于)指针还是一个load（load比较正常但是赋值指令怎么弄呢？）
+// 是不是要加一个判断(看一下是不是赋值语句)
 void CminusfBuilder::visit(ASTVar &node)
 {
+    Value *ptr = scope.find(node.id);
+    if (node.expression)
+    {
+        node.expression->accept(*this);
+        Value* offset = convert(val, module->get_int32_type());
+        // if (offset->) TODO: how to check if offset is non-negative?
+        // do i need to check it here? i think we'd need an interpreter ((()))
+        ptr = builder->create_gep(ptr, {CONST_INT(0), offset});
+    }
+    val = this->storing ? ptr : builder->create_load(ptr);
 }
 
 void CminusfBuilder::visit(ASTAssignExpression &node)
 {
+    node.expression->accept(*this);
+    Value *rhs = val;
+    storing = true;
+    node.var->accept(*this);
+    builder->create_store(convert(rhs, val->get_type()->get_pointer_element_type()), val);
+    val = rhs;
+    storing = false;
 }
 
 void CminusfBuilder::visit(ASTSimpleExpression &node)
