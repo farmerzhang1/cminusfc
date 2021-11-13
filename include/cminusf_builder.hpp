@@ -133,7 +133,7 @@ public:
             assert(comp_float_map.contains(enumCase));
         }
     }
-
+    ~CminusfBuilder() { delete builder; }
     std::unique_ptr<Module> getModule()
     {
         return std::move(module);

@@ -9,7 +9,6 @@ Function::Function(FunctionType *ty, const std::string &name, Module *parent)
     parent->add_function(this);
     build_args();
 }
-
 Function *Function::create(FunctionType *ty, const std::string &name, Module *parent)
 {
     return new Function(ty, name, parent);
