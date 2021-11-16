@@ -39,7 +39,7 @@ void CminusfBuilder::visit(ASTVarDeclaration &node)
     Value *v; // do we still need it?
     Type *t;
     t = type(node.type); // utility
-    if (node.num)        // array type
+    if (node.num)        // array type // int a[10];
         t = module->get_array_type(t, node.num->i_val);
 
     if (scope.in_global())
@@ -72,10 +72,14 @@ void CminusfBuilder::visit(ASTFunDeclaration &node)
     last iterator: 通常是vec.end() (.end()指向的是最后一个元素再往后加一)
     result: 存储对第一个容器迭代的结果
     func: lambda 表达式 (匿名函数) [capture list](parameters){body} capture就是在body中出现但是不在参数列表里的变量
+    params.push_back( return-thing )
     */
     // so this basically traverse NODE.PARAMS and store each parameter's type in PARAMS
     std::transform(node.params.begin(), node.params.end(), std::back_inserter(params), [this](const auto &param)
-                   { return this->type(param->type); });
+                   {
+                       auto contained = type(param->type);
+                       return param->isarray ? this->module->get_pointer_type(contained) : contained;
+                   });
     auto func_type = FunctionType::get(type(node.type), params);
     auto f = Function::create(func_type, node.id, module.get());
     scope.push(node.id, f);
@@ -83,11 +87,21 @@ void CminusfBuilder::visit(ASTFunDeclaration &node)
     // 声明函数时没有参数名，这里设置一下
     // std::for_each(f->arg_begin(), f->arg_end(), [i, node](Argument *arg)
     //               { arg->set_name(node.params[i]->id); });
-    for (auto &arg : f->get_args())
-        arg->set_name(node.params[i++]->id);
-
     auto bb = BasicBlock::create(module.get(), "entry", f);
     builder->set_insert_point(bb);
+    for (auto &arg : f->get_args())
+    {
+        arg->set_name(node.params[i]->id);
+        node.params[i]->accept(*this);
+        val = builder->create_store(arg, val);
+        if(node.params[i]->isarray)
+        {
+            Value *ptr = scope.find(node.params[i]->id); // FIXME
+
+            val = builder->create_load(ptr);//error from after load
+        }
+        i++;
+    }
     bb_counter = 0;
     node.compound_stmt->accept(*this);
 }
@@ -95,6 +109,16 @@ void CminusfBuilder::visit(ASTFunDeclaration &node)
 // how can we use this??
 void CminusfBuilder::visit(ASTParam &node)
 {
+    Type *t = type(node.type);
+    if (node.isarray)
+    {
+        val = builder->create_alloca(Type::get_pointer_type(t));
+    }
+    else
+    {
+        val = builder->create_alloca(t);
+    }
+    scope.push(node.id, val);
 }
 
 void CminusfBuilder::visit(ASTCompoundStmt &node)
@@ -180,15 +204,12 @@ void CminusfBuilder::visit(ASTReturnStmt &node)
 // 是不是要加一个判断(看一下是不是赋值语句)
 void CminusfBuilder::visit(ASTVar &node)
 {
-    Value *ptr = scope.find(node.id);
+    Value *ptr = scope.find(node.id); // ptr = alloca([10 x i32])
     if (node.expression)
     {
         node.expression->accept(*this);
         Value *offset = convert(val, module->get_int32_type());
-        // if (offset->) TODO: how to check if offset is non-negative?
-        // do i need to check it here? i think we'd need an interpreter ((()))
-        // or creating a branch (ugly!)
-        Value* nonnegative = comp_int_map[RelOp::OP_GE](offset, CONST_INT(0));
+        Value *nonnegative = comp_int_map[RelOp::OP_GE](offset, CONST_INT(0));
         auto t = BasicBlock::create(module.get(), "true" + std::to_string(bb_counter++), builder->get_insert_block()->get_parent());
         auto f = BasicBlock::create(module.get(), "false" + std::to_string(bb_counter++), builder->get_insert_block()->get_parent());
         builder->create_cond_br(nonnegative, t, f);
@@ -196,7 +217,14 @@ void CminusfBuilder::visit(ASTVar &node)
         builder->create_call(scope.get_global("neg_idx_except"), {});
         builder->create_br(t);
         builder->set_insert_point(t);
-        ptr = builder->create_gep(ptr, {CONST_INT(0), offset});
+        if (ptr->get_type()->get_pointer_element_type()->is_array_type())
+        {
+            ptr = builder->create_gep(ptr, {CONST_INT(0), offset});
+        }
+        else
+        {
+            ptr = builder->create_gep(ptr, {offset});
+        }
     }
     val = this->storing ? ptr : builder->create_load(ptr);
 }

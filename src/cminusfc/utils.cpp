@@ -38,6 +38,10 @@ Value *CminusfBuilder::convert(Value *n, Type *to)
     {
         return builder->create_fptosi(n, to);
     }
-    assert("what type are you converting to?");
+    if(to->is_pointer_type())
+    {
+        return n;
+    }
+    assert(!"what type are you converting to?");
     return nullptr;
 }
