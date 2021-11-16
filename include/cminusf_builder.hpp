@@ -141,7 +141,7 @@ public:
     Type *type(CminusType t) const;
     Value *convert(Value *n, Type *to);
     Value *val = nullptr;
-    bool storing = false;
+    bool address_only = false;
     size_t bb_counter{0};
     std::map<AddOp, std::function<BinaryInst *(Value *, Value *)>> add_int_map = {
         {AddOp::OP_PLUS, [this](Value *l, Value *r)
