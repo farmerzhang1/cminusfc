@@ -39,7 +39,7 @@ void CminusfBuilder::visit(ASTVarDeclaration &node)
     Value *v; // do we still need it?
     Type *t;
     t = type(node.type); // utility
-    if (node.num)        // array type
+    if (node.num)        // array type // int a[10];
         t = module->get_array_type(t, node.num->i_val);
 
     if (scope.in_global())
@@ -92,8 +92,15 @@ void CminusfBuilder::visit(ASTFunDeclaration &node)
     for (auto &arg : f->get_args())
     {
         arg->set_name(node.params[i]->id);
-        node.params[i++]->accept(*this);
+        node.params[i]->accept(*this);
         val = builder->create_store(arg, val);
+        if(node.params[i]->isarray)
+        {
+            Value *ptr = scope.find(node.params[i]->id); // FIXME
+
+            val = builder->create_load(ptr);//error from after load
+        }
+        i++;
     }
     bb_counter = 0;
     node.compound_stmt->accept(*this);
@@ -197,14 +204,11 @@ void CminusfBuilder::visit(ASTReturnStmt &node)
 // 是不是要加一个判断(看一下是不是赋值语句)
 void CminusfBuilder::visit(ASTVar &node)
 {
-    Value *ptr = scope.find(node.id);
+    Value *ptr = scope.find(node.id); // ptr = alloca([10 x i32])
     if (node.expression)
     {
         node.expression->accept(*this);
         Value *offset = convert(val, module->get_int32_type());
-        // if (offset->) TODO: how to check if offset is non-negative?
-        // do i need to check it here? i think we'd need an interpreter ((()))
-        // or creating a branch (ugly!)
         Value *nonnegative = comp_int_map[RelOp::OP_GE](offset, CONST_INT(0));
         auto t = BasicBlock::create(module.get(), "true" + std::to_string(bb_counter++), builder->get_insert_block()->get_parent());
         auto f = BasicBlock::create(module.get(), "false" + std::to_string(bb_counter++), builder->get_insert_block()->get_parent());
@@ -213,7 +217,14 @@ void CminusfBuilder::visit(ASTVar &node)
         builder->create_call(scope.get_global("neg_idx_except"), {});
         builder->create_br(t);
         builder->set_insert_point(t);
-        ptr = builder->create_gep(ptr, {CONST_INT(0), offset});
+        if (ptr->get_type()->get_pointer_element_type()->is_array_type())
+        {
+            ptr = builder->create_gep(ptr, {CONST_INT(0), offset});
+        }
+        else
+        {
+            ptr = builder->create_gep(ptr, {offset});
+        }
     }
     val = this->storing ? ptr : builder->create_load(ptr);
 }
