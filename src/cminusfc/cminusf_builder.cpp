@@ -84,9 +84,6 @@ void CminusfBuilder::visit(ASTFunDeclaration &node)
     auto f = Function::create(func_type, node.id, module.get());
     scope.push(node.id, f);
     size_t i{0};
-    // 声明函数时没有参数名，这里设置一下
-    // std::for_each(f->arg_begin(), f->arg_end(), [i, node](Argument *arg)
-    //               { arg->set_name(node.params[i]->id); });
     auto bb = BasicBlock::create(module.get(), "entry", f);
     builder->set_insert_point(bb);
     for (auto &arg : f->get_args())
@@ -94,12 +91,12 @@ void CminusfBuilder::visit(ASTFunDeclaration &node)
         arg->set_name(node.params[i]->id);
         node.params[i]->accept(*this);
         val = builder->create_store(arg, val);
-        if(node.params[i]->isarray)
-        {
-            Value *ptr = scope.find(node.params[i]->id); // FIXME
+        // if (node.params[i]->isarray)
+        // {
+        //     Value *ptr = scope.find(node.params[i]->id); // FIXME
 
-            val = builder->create_load(ptr);//error from after load
-        }
+        //     val = builder->create_load(ptr); // error from after load
+        // }
         i++;
     }
     bb_counter = 0;
@@ -198,10 +195,8 @@ void CminusfBuilder::visit(ASTReturnStmt &node)
     }
     else
         builder->create_void_ret();
-    // scope.exit(); // where should we use terminator?
 }
-// TODO: 要返回(我说的是 让val等于)指针还是一个load（load比较正常但是赋值指令怎么弄呢？）
-// 是不是要加一个判断(看一下是不是赋值语句)
+
 void CminusfBuilder::visit(ASTVar &node)
 {
     Value *ptr = scope.find(node.id); // ptr = alloca([10 x i32])
@@ -221,23 +216,24 @@ void CminusfBuilder::visit(ASTVar &node)
         {
             ptr = builder->create_gep(ptr, {CONST_INT(0), offset});
         }
-        else
+        else if (ptr->get_type()->get_pointer_element_type()->is_pointer_type())
         {
+            ptr = builder->create_load(ptr);
             ptr = builder->create_gep(ptr, {offset});
         }
     }
-    val = this->storing ? ptr : builder->create_load(ptr);
+    val = this->address_only ? ptr : builder->create_load(ptr);
 }
 
 void CminusfBuilder::visit(ASTAssignExpression &node)
 {
     node.expression->accept(*this);
     Value *rhs = val;
-    storing = true;
+    address_only = true;
     node.var->accept(*this);
     builder->create_store(convert(rhs, val->get_type()->get_pointer_element_type()), val);
     val = rhs;
-    storing = false;
+    address_only = false;
 }
 
 void CminusfBuilder::visit(ASTSimpleExpression &node)
@@ -258,7 +254,6 @@ void CminusfBuilder::visit(ASTSimpleExpression &node)
         {
             lhs = convert(lhs, module->get_float_type()); // convert to float, return it directly if is float already
             rhs = convert(rhs, module->get_float_type());
-            // 两个差不多的 switch 太丑了！！！ done!
             // 可不可以用一个 map, 从 operator 映射到 函数
             val = comp_float_map[node.op](lhs, rhs);
         }
@@ -327,7 +322,10 @@ void CminusfBuilder::visit(ASTCall &node)
     size_t i = 0;
     std::transform(node.args.begin(), node.args.end(), std::back_inserter(args), [this, &i, func](auto &e)
                    {
+                       // so storing means we need its address, not value
+                       address_only = func->get_function_type()->get_param_type(i)->is_pointer_type();
                        e->accept(*this);
+                       address_only = false;
                        return convert(val, func->get_function_type()->get_param_type(i++));
                    });
     val = builder->create_call(func, std::move(args));
