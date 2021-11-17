@@ -100,6 +100,7 @@ void CminusfBuilder::visit(ASTFunDeclaration &node)
         i++;
     }
     bb_counter = 0;
+    return_type = node.type;
     node.compound_stmt->accept(*this);
 }
 
@@ -190,8 +191,9 @@ void CminusfBuilder::visit(ASTReturnStmt &node)
 {
     if (node.expression)
     {
+        CminusType t = return_type;
         node.expression->accept(*this);
-        builder->create_ret(val);
+        builder->create_ret(convert(val,type(t)));
     }
     else
         builder->create_void_ret();
