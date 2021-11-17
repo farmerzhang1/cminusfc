@@ -54,12 +54,12 @@ void CminusfBuilder::visit(ASTVarDeclaration &node)
     }
     else
         val = builder->create_alloca(t);
-
-    if (!scope.push(node.id, val))
-    {
-        // why not just shadow it?
-        // well, c doesn't support it...
-    }
+    assert(scope.push(node.id, val));
+    // if (!scope.push(node.id, val))
+    // {
+    //     // why not just shadow it?
+    //     // well, c doesn't support it...
+    // }
 }
 
 void CminusfBuilder::visit(ASTFunDeclaration &node)
@@ -82,21 +82,17 @@ void CminusfBuilder::visit(ASTFunDeclaration &node)
                    });
     auto func_type = FunctionType::get(type(node.type), params);
     auto f = Function::create(func_type, node.id, module.get());
-    scope.push(node.id, f);
+    assert(scope.push(node.id, f));
     size_t i{0};
     auto bb = BasicBlock::create(module.get(), "entry", f);
     builder->set_insert_point(bb);
+    scope.enter();
+    this->enter_in_fun_decl = true;
     for (auto &arg : f->get_args())
     {
         arg->set_name(node.params[i]->id);
         node.params[i]->accept(*this);
         val = builder->create_store(arg, val);
-        // if (node.params[i]->isarray)
-        // {
-        //     Value *ptr = scope.find(node.params[i]->id); // FIXME
-
-        //     val = builder->create_load(ptr); // error from after load
-        // }
         i++;
     }
     bb_counter = 0;
@@ -104,7 +100,8 @@ void CminusfBuilder::visit(ASTFunDeclaration &node)
     node.compound_stmt->accept(*this);
 }
 
-// how can we use this??
+// FIXME: push {id, val} when in a new scope, but we only enter the new one when visiting compount statement
+// do we need another boolean?
 void CminusfBuilder::visit(ASTParam &node)
 {
     Type *t = type(node.type);
@@ -116,12 +113,15 @@ void CminusfBuilder::visit(ASTParam &node)
     {
         val = builder->create_alloca(t);
     }
-    scope.push(node.id, val);
+    assert(scope.push(node.id, val));
 }
 
 void CminusfBuilder::visit(ASTCompoundStmt &node)
 {
-    scope.enter();
+    if (!enter_in_fun_decl)
+        scope.enter();
+
+    enter_in_fun_decl = false;
     for (auto &decl_ptr : node.local_declarations)
         decl_ptr->accept(*this);
     for (auto &stmt_ptr : node.statement_list)
@@ -193,7 +193,7 @@ void CminusfBuilder::visit(ASTReturnStmt &node)
     {
         CminusType t = return_type;
         node.expression->accept(*this);
-        builder->create_ret(convert(val,type(t)));
+        builder->create_ret(convert(val, type(t)));
     }
     else
         builder->create_void_ret();
@@ -204,7 +204,10 @@ void CminusfBuilder::visit(ASTVar &node)
     Value *ptr = scope.find(node.id); // ptr = alloca([10 x i32])
     if (node.expression)
     {
+        bool temp = address_only;
+        address_only = false;
         node.expression->accept(*this);
+        address_only = temp;
         Value *offset = convert(val, module->get_int32_type());
         Value *nonnegative = comp_int_map[RelOp::OP_GE](offset, CONST_INT(0));
         auto t = BasicBlock::create(module.get(), "true" + std::to_string(bb_counter++), builder->get_insert_block()->get_parent());
