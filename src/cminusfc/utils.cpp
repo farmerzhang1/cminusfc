@@ -43,6 +43,10 @@ Value *CminusfBuilder::convert(Value *n, Type *to)
     {
         return builder->create_gep(n, {CONST_INT(0), CONST_INT(0)});
     }
+    if (n->get_type()->get_pointer_element_type()->is_pointer_type() && to->is_pointer_type())
+    {
+        return builder->create_load(n);
+    }
     assert(!"what type are you converting to?");
     return nullptr;
 }

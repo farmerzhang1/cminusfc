@@ -1,14 +1,8 @@
-void test(int a[]) {
-    int i = a[3];
-    return;
+int f(void) {
+    return 233.3;
 }
-void b(int a){
-    a=3;
-    return;
-}
+
 int main(void) {
-    int a[10];
-    a[3] = 10;
-    test(a);
+    f();
     return 0;
 }
