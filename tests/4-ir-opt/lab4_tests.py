@@ -175,18 +175,11 @@ def calculate_score(input_functions, answer_functions):
 
     total_bb = 0
     for ans_func in answer_functions:
-        total_bb += len(ans_func['live_in'])
         total_bb += len(ans_func['live_out'])
     cal_score = 0
     for ans_func in answer_functions:
         for in_func in input_functions:
             if ans_func['function'] == in_func['function']:
-                for ans_bb, ans_bb_vals in ans_func['live_in'].items():
-                    for in_bb, in_bb_vals in in_func['live_in'].items():
-                        if ans_bb == in_bb:
-                            cal_score += calculate_bb_score(in_bb_vals, ans_bb_vals)
-                        else:
-                            continue
                 for ans_bb, ans_bb_vals in ans_func['live_out'].items():
                     for in_bb, in_bb_vals in in_func['live_out'].items():
                         if ans_bb == in_bb:
