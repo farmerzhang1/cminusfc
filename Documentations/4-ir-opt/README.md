@@ -106,7 +106,7 @@
 
    在`ActiveVars.hpp`中定义了两个成员`live_in`, `live_out`，你需要：
 
-   1. 将`pair<bb, IN[bb]>`插入`live_in`的 map 结构中。
+   1. 将`pair<bb, IN[bb]>`插入`live_in`的 map 结构中（评分将不依据于此变量）。
    2. 将`pair<bb, OUT[bb]>`插入`live_out` 的 map 结构中（评分将依据于此变量）。
    3. 调用`ActiveVars`类中的`print()`方法输出 bb 活跃变量情况到 json 文件。
 
