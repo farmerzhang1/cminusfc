@@ -1,4 +1,12 @@
 #include "cminusf_builder.hpp"
+#include "PassManager.hpp"
+#include "LoopSearch.hpp"
+#include "Dominators.h"
+#include "Mem2Reg.hpp"
+#include "LoopSearch.hpp"
+#include "LoopInvHoist.hpp"
+#include "ActiveVars.hpp"
+#include "ConstPropagation.hpp"
 #include <iostream>
 #include <fstream>
 #include <memory>
@@ -7,12 +15,18 @@ using namespace std::literals::string_literals;
 
 void print_help(std::string exe_name) {
     std::cout << "Usage: " << exe_name <<
-        " [ -h | --help ] [ -o <target-file> ] [ -emit-llvm ] <input-file>" << std::endl;
+        " [ -h | --help ] [ -o <target-file> ] [ -emit-llvm ] [-mem2reg] [-loop-search] [-loop-inv-hoist] [-const-propagation] [-active-vars] <input-file>" << std::endl;
 }
 
 int main(int argc, char **argv) {
     std::string target_path;
     std::string input_path;
+
+    bool mem2reg = false;
+    bool const_propagation = false;
+    bool activevars = false;
+    bool loop_inv_hoist = false;
+    bool loop_search = false;
     bool emit = false;
 
     for (int i = 1;i < argc;++i) {
@@ -29,6 +43,16 @@ int main(int argc, char **argv) {
             }
         } else if (argv[i] == "-emit-llvm"s) {
             emit = true;
+        } else if (argv[i] == "-mem2reg"s) {
+            mem2reg = true;
+        } else if (argv[i] == "-loop-search"s) {
+            loop_search = true;
+        } else if (argv[i] == "-loop-inv-hoist"s) {
+            loop_inv_hoist = true;
+        } else if (argv[i] == "-const-propagation"s) {
+            const_propagation = true;
+        } else if (argv[i] == "-active-vars"s) {
+            activevars = true;
         } else {
             if (input_path.empty()) {
                 input_path = argv[i];
@@ -53,7 +77,11 @@ int main(int argc, char **argv) {
                 std::cerr << argv[0] << ": input file " << input_path << " has unknown filetype!" << std::endl;
                 return -1;
             }
-            target_path = input_path.substr(0, pos);
+            if (emit) {
+                target_path = input_path.substr(0, pos);
+            } else {
+                target_path = input_path.substr(0, pos);
+            }
         }
     }
 
@@ -65,7 +93,30 @@ int main(int argc, char **argv) {
     auto m = builder.getModule();
 
     m->set_print_name();
+    PassManager PM(m.get());
 
+    if( mem2reg )
+    {
+        PM.add_pass<Mem2Reg>();
+    }
+    if( loop_search )
+    {
+        PM.add_pass<LoopSearch>();
+    }
+    if( const_propagation )
+    {
+        PM.add_pass<ConstPropagation>(true);
+    }
+    if( activevars )
+    {
+        PM.add_pass<ActiveVars>();
+    }
+    if( loop_inv_hoist )
+    {
+        PM.add_pass<LoopInvHoist>(true);
+    }
+    PM.run();
+    
     auto IR = m->print();
 
     std::ofstream output_stream;
