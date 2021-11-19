@@ -40,7 +40,7 @@
 
 * 阅读`Mem2Reg`与`LoopSearch`两个优化 pass 的代码，回答思考题。
 
-值得一提的是`lightir`中的[lightir核心类介绍.md](../common/lightir.md)中的User类中`operands_`成员也就是操作数列表，以及Value类的`use_list_`成员，这两个链表描述了指令间的数据依赖关系，请注意查看。
+请注意查看[lightir](../common/lightir.md)中的User类的`operands_`成员，以及Value类的`use_list_`成员，这两个链表描述了指令间的数据依赖关系。
 
 #### 阶段二：基本优化 pass 开发
 
