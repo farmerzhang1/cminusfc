@@ -95,7 +95,7 @@ void CminusfBuilder::visit(ASTFunDeclaration &node)
         val = builder->create_store(arg, val);
         // if (node.params[i]->isarray)
         // {
-        //     Value *ptr = scope.find(node.params[i]->id); // FIXME
+        //     Value *ptr = scope.find(node.params[i]->id); // 
 
         //     val = builder->create_load(ptr); // error from after load
         // }
@@ -161,7 +161,7 @@ void CminusfBuilder::visit(ASTSelectionStmt &node)
     auto out = BasicBlock::create(module.get(), "out" + std::to_string(bb_counter++), builder->get_insert_block()->get_parent());
     builder->create_cond_br(val, trueBB, falseBB ? falseBB : out);
     builder->set_insert_point(trueBB);
-    return_now = false;
+    return_now = false;//FIXME
     trueBB_enter = true;
     node.if_statement->accept(*this);
     builder->create_br(out);
@@ -212,7 +212,7 @@ void CminusfBuilder::visit(ASTReturnStmt &node)
     if (node.expression)
     {
         CminusType t = return_type;
-        node.expression->accept(*this);
+        node.expression->accept(*this);//FIXME
         if (return_now)
         {
             if (branch_return)
