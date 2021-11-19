@@ -159,6 +159,7 @@ public:
     bool branch_return = false;
     bool trueBB_enter = false;
     bool falseBB_enter = false;
+    bool enter_in_fun_decl = false;
     CminusType return_type;
     size_t bb_counter{0};
     std::map<AddOp, std::function<BinaryInst *(Value *, Value *)>> add_int_map = {
