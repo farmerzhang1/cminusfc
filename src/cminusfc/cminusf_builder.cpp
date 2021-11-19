@@ -83,6 +83,8 @@ void CminusfBuilder::visit(ASTFunDeclaration &node)
     auto func_type = FunctionType::get(type(node.type), params);
     auto f = Function::create(func_type, node.id, module.get());
     scope.push(node.id, f);
+    scope.enter();
+    pre_scope_enter = true;
     size_t i{0};
     auto bb = BasicBlock::create(module.get(), "entry", f);
     builder->set_insert_point(bb);
@@ -121,7 +123,14 @@ void CminusfBuilder::visit(ASTParam &node)
 
 void CminusfBuilder::visit(ASTCompoundStmt &node)
 {
-    scope.enter();
+    if (pre_scope_enter)
+    {
+        pre_scope_enter = false;
+    }
+    else
+    {
+        scope.enter();
+    }
     for (auto &decl_ptr : node.local_declarations)
         decl_ptr->accept(*this);
     for (auto &stmt_ptr : node.statement_list)
@@ -152,15 +161,26 @@ void CminusfBuilder::visit(ASTSelectionStmt &node)
     auto out = BasicBlock::create(module.get(), "out" + std::to_string(bb_counter++), builder->get_insert_block()->get_parent());
     builder->create_cond_br(val, trueBB, falseBB ? falseBB : out);
     builder->set_insert_point(trueBB);
+    return_now = false;
+    trueBB_enter = true;
     node.if_statement->accept(*this);
     builder->create_br(out);
     if (node.else_statement)
     {
         builder->set_insert_point(falseBB);
+        return_now = false;
+        falseBB_enter = true;
         node.else_statement->accept(*this);
         builder->create_br(out);
     }
     builder->set_insert_point(out);
+    if (branch_return)
+    {
+        Value *ptr = scope.find("");
+        auto return_lalala = builder->create_load(ptr);
+        builder->create_ret(return_lalala);
+        branch_return = false;
+    }
 }
 
 void CminusfBuilder::visit(ASTIterationStmt &node)
@@ -193,7 +213,37 @@ void CminusfBuilder::visit(ASTReturnStmt &node)
     {
         CminusType t = return_type;
         node.expression->accept(*this);
-        builder->create_ret(convert(val,type(t)));
+        if (return_now)
+        {
+            if (branch_return)
+            {
+                Value *ptr = scope.find("");
+                builder->create_store(convert(val, type(t)), ptr);
+            }
+            else
+            {
+                auto tem = builder->create_alloca(type(t));
+                builder->create_store(convert(val, type(t)), tem);
+                scope.push("", tem);
+            }
+            builder->create_ret(convert(val, type(t)));
+        }
+        else
+        {
+            branch_return = true;
+            if (trueBB_enter && falseBB_enter)
+            {
+                Value *ptr = scope.find("");
+                builder->create_store(convert(val, type(t)), ptr);
+            }
+            else
+            {
+                auto tem = builder->create_alloca(type(t));
+                builder->create_store(convert(val, type(t)), tem);
+                scope.push("", tem);
+            }
+        }
+        return_now = true;
     }
     else
         builder->create_void_ret();
@@ -204,7 +254,10 @@ void CminusfBuilder::visit(ASTVar &node)
     Value *ptr = scope.find(node.id); // ptr = alloca([10 x i32])
     if (node.expression)
     {
+        bool tem = address_only;
+        address_only = false;
         node.expression->accept(*this);
+        address_only = tem;
         Value *offset = convert(val, module->get_int32_type());
         Value *nonnegative = comp_int_map[RelOp::OP_GE](offset, CONST_INT(0));
         auto t = BasicBlock::create(module.get(), "true" + std::to_string(bb_counter++), builder->get_insert_block()->get_parent());

@@ -51,6 +51,18 @@ public:
         }
         return nullptr;
     }
+    Value *find(std::string &&name)
+    {
+        for (auto s = inner.rbegin(); s != inner.rend(); s++)
+        {
+            auto iter = s->find(name);
+            if (iter != s->end())
+            {
+                return iter->second;
+            }
+        }
+        return nullptr;
+    }
     // return global variables (functions or vars)
     Value *get_global(std::string &name) const
     {
@@ -142,6 +154,11 @@ public:
     Value *convert(Value *n, Type *to);
     Value *val = nullptr;
     bool address_only = false;
+    bool pre_scope_enter = false;
+    bool return_now = true;
+    bool branch_return = false;
+    bool trueBB_enter = false;
+    bool falseBB_enter = false;
     CminusType return_type;
     size_t bb_counter{0};
     std::map<AddOp, std::function<BinaryInst *(Value *, Value *)>> add_int_map = {
