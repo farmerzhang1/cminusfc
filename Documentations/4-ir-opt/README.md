@@ -3,14 +3,13 @@
 - [Lab4 实验文档](#lab4-实验文档)
   - [0. 前言](#0-前言)
     - [主要工作](#主要工作)
-      - [代码与材料阅读](#代码与材料阅读)
-      - [基本优化Pass开发](#开发基本优化Pass)
-      - [Bonus：选做优化Pass开发](#bonus选做优化Pass)
-      - [Lab4代码与实验报告提交](#lab4代码与实验报告提交)
+      - [阶段一：代码与材料阅读](#阶段一代码与材料阅读)
+      - [阶段二：基本优化 pass 开发](#阶段二基本优化-pass-开发)
+      - [Lab4 代码与实验报告提交](#lab4代码与实验报告提交)
   - [1. 实验框架](#1-实验框架)
   - [2. 运行与调试](#2-运行与调试)
     - [运行 cminusfc](#运行-cminusfc)
-    - [lab自动测试](#自动测试)
+    - [自动测试](#自动测试)
     - [logging](#logging)
     - [建议](#建议)
   - [3. 提交要求](#3-提交要求)
@@ -21,9 +20,9 @@
 
 本次实验是组队实验，请仔细阅读[组队要求](http://211.86.152.198:8080/staff/2021fall-notice_board/-/issues/46)，并合理进行分工合作。
 
-**Pass概念**：接受一个`module`作为参数，在lab3中我们已经知道，`module`是IR最上层的结构。在本次实验中，`Pass`将遍历`module`内的结构，分析出信息(例如对活跃变量的分析 `Pass`)，或者是对`module`内的指令和bb做一些变换(例如本次实验中的常量传播和循环不变式外提 `Pass`)。
+**pass概念**：在lab3中我们已经知道，`module`是 ir 最上层的结构。在本次实验中，`pass`将遍历`module`内的结构，分析出信息(例如对活跃变量的分析 `pass`)，或者是对`module`内的指令和bb做一些变换(例如本次实验中的常量传播和循环不变式外提 `pass`)。
 
-相信大家已经掌握了 LightIR 的结构，并且对于 LLVM IR 也有了更深的理解。在本次实验中，我们要在理解SSA（静态单赋值）格式的基础上，实现三个简单的 Pass ：常量传播，循环不变式外提，活跃变量分析。
+相信大家已经掌握了 lightir 的结构，并且对于 llvm ir 也有了更深的理解。在本次实验中，我们要在理解 ssa （静态单赋值）格式的基础上，实现三个简单的 pass ：常量传播，循环不变式外提，活跃变量分析。
 
 ### 主要工作
 
@@ -34,19 +33,19 @@
 
 实验目的：
 
-1. 通过阅读优化 Pass ，学习优化的基本流程
-2. 掌握如何开发基于 LightIR 的优化 Pass 
+1. 通过阅读优化 pass ，学习优化的基本流程
+2. 掌握如何开发基于 lightir 的优化 pass 
 
 实验任务：
 
-* 阅读`Mem2Reg`与`LoopSearch`两个优化 Pass 的代码，回答思考题。
+* 阅读`Mem2Reg`与`LoopSearch`两个优化 pass 的代码，回答思考题。
 
-值得一提的是`LightIR`中的[LightIR核心类介绍.md](../common/LightIR.md)中的User类中`operands_`成员也就是操作数列表，以及Value类的`use_list_`成员，这两个链表描述了指令间的数据依赖关系，请注意查看。
+值得一提的是`lightir`中的[lightir核心类介绍.md](../common/lightir.md)中的User类中`operands_`成员也就是操作数列表，以及Value类的`use_list_`成员，这两个链表描述了指令间的数据依赖关系，请注意查看。
 
-#### 阶段二：基本优化 Pass 开发
+#### 阶段二：基本优化 pass 开发
 
 1. **常量传播**
-   能够实现在编译优化阶段，能够计算出结果的变量，就直接替换为常量；补充以下几点需要注意的地方：
+   能够实现在编译优化阶段，能够计算出结果的变量，就直接替换为常量；补充以下几点需要注意的地方：  
     a. 只需要考虑过程内的常量传播，可以不用考虑数组，**全局变量只需要考虑块内的常量传播**，这里举个例子来说明常量传播：
    
     ```cpp
@@ -58,11 +57,11 @@
     %a = 2;
     %b = 2 + %c;
     ```
-    当然本次实验还需要额外做一步：将`%a = 2`这条无用语句删掉，因为`%a`是常量，并且已经传播给了使用它的地方，那么这条赋值语句就可以删掉了（由于我们的IR是SSA形式，所以不用担心%a被重新赋值）：
+    当然本次实验还需要额外做一步：将`%a = 2`这条无用语句删掉，因为`%a`是常量，并且已经传播给了使用它的地方，那么这条赋值语句就可以删掉了（由于我们的 ir 是 ssa 形式，所以不用担心%a被重新赋值）：
     ```cpp
     %b = 2 + %c;
     ```
-    b. 整形浮点型都需要考虑，
+    b. 整形浮点型都需要考虑。  
     c. 对于`a = 1 / 0`的情形，可以不考虑，即可以做处理也可以不处理。
    
 2. **循环不变式外提**
@@ -101,9 +100,9 @@
    2. 将`pair<bb, OUT[bb]>`插入`live_out` 的 map 结构中（评分将依据于此变量）。
    3. 调用`ActiveVars`类中的`print()`方法输出 bb 活跃变量情况到 json 文件。
 
-   **注**：助教会根据你输出的json文件中的进行批改。为了保证输出变量名字的一致性，请不要对指令，bb等进行命名操作，`cminusfc_builder`强制要求使用lab3的答案。
+   **注**：助教会根据你输出的 json 文件中的进行批改。为了保证输出变量名字的一致性，请不要对指令，bb等进行命名操作，`cminusfc_builder`强制要求使用lab3的答案。
 
-   **提示**：材料中没有`phi`节点的设计，数据流方程：$OUT[B] =\cup_{s是B的后继}IN[S]$ 的定义蕴含着S入口处活跃的变量在它所有前驱的出口处都是活跃的，由于`phi`指令的特殊性，例如`%0 = phi [%op1, %bb1], [%op2, %bb2]`如果使用如上数据流方程，则默认此`phi`指令同时产生了`op1`与`op2`的活跃性，而事实上只有控制流从`%bb1`传过来才有`%op1`的活跃性，从`%bb2`传过来才有`%op2`的活跃性。因此对此数据流方程需要做一些调整：$OUT[B] =\cup_{s是B的后继}IN[S]\cup_{s是B的后继} phi\_uses[S,B]$。其中`IN[S]`是S中剔除`phi`指令后分析出的入口变量结果。`phi_uses[S,B]`表示S中的`phi`指令参数中`label`为B的对应变量。举例如下：
+   **提示**：材料中没有`phi`节点的设计，数据流方程：$`OUT[B] =\cup_{s是B的后继}IN[S]`$ 的定义蕴含着S入口处活跃的变量在它所有前驱的出口处都是活跃的，由于`phi`指令的特殊性，例如`%0 = phi [%op1, %bb1], [%op2, %bb2]`如果使用如上数据流方程，则默认此`phi`指令同时产生了`op1`与`op2`的活跃性，而事实上只有控制流从`%bb1`传过来才有`%op1`的活跃性，从`%bb2`传过来才有`%op2`的活跃性。因此对此数据流方程需要做一些调整：$`OUT[B] =\cup_{s是B的后继}IN[S]\cup_{s是B的后继} phi\_uses[S,B]`$。其中`IN[S]`是S中剔除`phi`指令后分析出的入口变量结果。`phi_uses[S,B]`表示S中的`phi`指令参数中`label`为B的对应变量。举例如下：
 
    ```c
    label4:                                                ; preds = %label_entry, %label59
@@ -121,8 +120,8 @@
    
 
 #### Lab4代码与实验报告提交
-1. 基本优化Pass的代码都写在`src/optimization/`目录下面，头文件放入`include/optimization/`当中，最后只会在这两个目录下验收代码文件。
-2. 需要在 `Reports/4-ir-opt/` 目录下撰写实验报告，且由队长说明成员贡献比率。其中，在 `report-phase1.md` 中完成阶段一的代码阅读部分的报告，在 `report-phase2.md` 中解释阶段二中的基本优化Pass的设计，遇到的困难和解决方案，由**队长**在 `contribution.md` 中解释每位队员的贡献，并说明贡献比例
+1. 基本优化pass的代码都写在`src/optimization/`目录下面，头文件放入`include/optimization/`当中，最后只会在这两个目录下验收代码文件。
+2. 需要在 `Reports/4-ir-opt/` 目录下撰写实验报告，且由队长说明成员贡献比率。其中，在 `report-phase1.md` 中完成阶段一的代码阅读部分的报告，在 `report-phase2.md` 中解释阶段二中的基本优化pass的设计，遇到的困难和解决方案，由**队长**在 `contribution.md` 中解释每位队员的贡献，并说明贡献比例
 
 注意：组队实验意味着合作，但是小组间的交流是受限的，且严格**禁止**代码的共享。除此之外，如果小组和其它组进行了交流，必须在 `report-phase1.md` 和`report-phase2.md`  中记录下来交流的小组和你们之间交流内容。
 
@@ -130,16 +129,15 @@
 
 ## 1. 实验框架
 
-本次实验使用了由 C++ 编写的 LightIR 来在 IR 层面完成优化化简，在`include/optimization/PassManager.hpp`中，定义了一个用于管理 Pass 的类`PassManager`。它的作用是注册与运行 Pass 。它提供了以下接口：
+本次实验使用了由 C++ 编写的 lightir 来在 ir 层面完成优化化简，在`include/optimization/passManager.hpp`中，定义了一个用于管理 pass 的类`passManager`。它的作用是注册与运行 pass 。它提供了以下接口：
 
 ```cpp
-PassManager pm(module.get())
-pm.add_Pass<Mem2Reg>(emit)	//注册Pass，emit为true时打印优化后的IR
-pm.run()	//按照注册的顺序运行Pass的run()函数
+passManager pm(module.get())
+pm.add_pass<Mem2Reg>(emit)	//注册 pass， emit 为true时打印优化后的 ir
+pm.run()	//按照注册的顺序运行 pass 的 run() 函数
 ```
-基本 Pass 开发：
-
-每一个 Pass 有一个 cpp 文件和对应的 hpp 文件，可以在 hpp 里定义辅助类或者成员变量使用，在 cpp 里的`run()`函数实现你的 Pass 。
+基本 pass 开发：  
+- 每一个 pass 有一个 cpp 文件和对应的 hpp 文件，可以在 hpp 里定义辅助类或者成员变量使用，在 cpp 里的`run()`函数实现你的 pass 。
 
 
 
@@ -153,33 +151,33 @@ cmake ..
 make -j
 make install
 ```
-编译后会产生 `cminusfc` 程序，它能将cminus文件输出为 LLVM IR ，也可以利用 clang 将 IR 编译成二进制。程序逻辑写在`cminusfc.cpp`中。
+编译后会产生 `cminusfc` 程序，它能将 cminus 文件输出为 llvm ir ，也可以利用 clang 将 ir 编译成二进制。程序逻辑写在`cminusfc.cpp`中。
 
-为了便于大家进行实验，助教对之前的`cminusfc`增加了选项，用来选择是否开启某种优化，通过`[-mem2reg] [-const-propagation] [-active-vars] [-loop-invariant]`开关来控制优化 Pass 的使用，当需要对 `.cminus` 文件测试时，可以这样使用：
+为了便于大家进行实验，助教对之前的`cminusfc`增加了选项，用来选择是否开启某种优化，通过`[-mem2reg] [-const-propagation] [-active-vars] [-loop-invariant]`开关来控制优化 pass 的使用，当需要对 `.cminus` 文件测试时，可以这样使用：
 ```bash
 ./cminusfc [-mem2reg] [-const-propagation] [-active-vars] [-loop-invariant] <input-file>
 ```
-另外，若想要另外单独去进行某个优化 Pass 的调试，可以利用助教给出的 PassManager 来进行 Pass 的注册和运行。
+另外，若想要另外单独去进行某个优化 pass 的调试，可以利用助教给出的 passManager 来进行 pass 的注册和运行。
 
 
 
 ### 自动测试
 
 助教贴心地为大家准备了自动测试脚本，它在 `tests/4-ir-opt` 目录下，使用方法如下：
-* 有三个可用的选项：`--ConstPropagation`/`-C`，`--LoopInvHoist`/`-L`，`--ActiveVars/-A`分别表示用来评测常量传播 Pass 以及循环不变式外提 Pass ，以及活跃变量分析 Pass。
+* 有三个可用的选项：`--ConstPropagation`/`-C`，`--LoopInvHoist`/`-L`，`--ActiveVars/-A`分别表示用来评测常量传播 pass 以及循环不变式外提 pass ，以及活跃变量分析 pass。
 
 * 脚本中会使用`taskset`将程序与 CPU 核心进行绑定，以此来提高时间测试的稳定性；当然如果虚拟机中没有该命令则通过下面的命令来安装：
   ```bash
   sudo apt install schedtool
   ```
   
-* 评测脚本会对样例进行编译和执行，然后对生成的可执行文件首先检查结果的正确性，每个样例的正确结果会放在`.out`文件中，结果正确的情况下才会去进一步评测运行时间。另外，在每类样例目录下中的`baseline`目录中还提供了相应 testcase 的`.ll`文件来作为baseline，基本 Pass 的优化效果得分也是要根据`baseline`的时间来进行计算。
+* 评测脚本会对样例进行编译和执行，然后对生成的可执行文件首先检查结果的正确性，每个样例的正确结果会放在`.out`文件中，结果正确的情况下才会去进一步评测运行时间。另外，在每类样例目录下中的`baseline`目录中还提供了相应 testcase 的`.ll`文件来作为 baseline ，基本 pass 的优化效果得分也是要根据`baseline`的时间来进行计算。
 
 * 如果显示执行时间的表格中出现了`None`则表示该样例有错误。
 
 * 每个样例会运行三次取平均时间（时间单位是 s ）并且保留两位小数输出，当然每个样例的运行次数也可以自行更改脚本中`repeated_time`变量。
 
-* 活跃变量 Pass 测试将与答案 json 文件脚本对比，得分计算规则见下面评分标准
+* 活跃变量 pass 测试将与答案 json 文件脚本对比，得分计算规则见下面评分标准
 ```sh
 # 在 tests/4-ir-opt 目录下运行：
 ./lab4_test.py -L
@@ -218,9 +216,9 @@ testcase-8              1.98                    0.25              0.25
 
 ### 建议
 
-1. 比较你们编写的编译器产生的 IR 和 clang 产生的 IR 来找出可能的问题或发现新的思路
+1. 比较你们编写的编译器产生的 ir 和 clang 产生的 ir 来找出可能的问题或发现新的思路
 2. 使用 logging 工具来打印调试信息
-2. 使用 GDB 等软件进行单步调试来检查错误的原因
+2. 使用 gdb 等软件进行单步调试来检查错误的原因
 3. 合理分工
 
 ## 3. 提交要求
@@ -233,7 +231,7 @@ testcase-8              1.98                    0.25              0.25
 ├── Documentations
 │   ├── ...
 │   ├── common
-│   |   ├── LightIR.md                  <- LightIR 相关文档
+│   |   ├── lightir.md                  <- lightir 相关文档
 │   |   ├── logging.md                  <- logging 工具相关文档
 │   |   └── cminusf.md                  <- cminus-f 的语法和语义文档
 │   └── 4-ir-opt
@@ -249,9 +247,9 @@ testcase-8              1.98                    0.25              0.25
 ├── Reports
 │   ├── ...
 │   └── 4-ir-opt
-│       ├── report-phase1.md            <- lab4 所需提交的实验阅读部分报告，请详细说明你们的设计（需要上交）
-│       ├── report-phase2.md            <- lab4 所需提交的实验基本Pass实验报告，请详细说明你们的设计（需要上交）
-│       └── contribution.md             <- lab4 所需提交的队员贡献信息（需要上交）
+│       ├── report-phase1.md            <- Lab4 所需提交的实验阅读部分报告，请详细说明你们的设计（需要上交）
+│       ├── report-phase2.md            <- Lab4 所需提交的实验基本pass实验报告，请详细说明你们的设计（需要上交）
+│       └── contribution.md             <- Lab4 所需提交的队员贡献信息（需要上交）
 ├── src
 │   ├── ...
 │   └── optimization
@@ -275,9 +273,9 @@ testcase-8              1.98                    0.25              0.25
 
   本次实验分阶段验收：
 
-  **阶段一**：验收代码阅读报告及相关思考题 ` report-phase1.md`
+  **阶段一**：验收代码阅读报告及相关思考题`report-phase1.md`
 
-  **阶段二**：验收lab4要求提交的代码及`report-phase2.md`
+  **阶段二**：验收Lab4要求提交的代码及`report-phase2.md`
 
 * 提交要求  
   本实验是组队实验，我们将收取**队长**实验仓库中的内容
@@ -298,8 +296,8 @@ testcase-8              1.98                    0.25              0.25
   * 阶段一 代码阅读
     
     * report-phase1.md (5 分)
-  * 阶段二 优化Pass开发
-    * **基本Pass (55 分)**
+  * 阶段二 优化pass开发
+    * **基本pass (55 分)**
       
       * report-phase2.md (10 分)
       
@@ -310,7 +308,7 @@ testcase-8              1.98                    0.25              0.25
         (before_optimization-after_optimization)/(before_optimization-baseline) > 0.5 得85%分数
         (before_optimization-after_optimization)/(before_optimization-baseline) > 0.2 得60%分数
         ```
-        **注**：`before_optimization`以lab4答案为基准，lab4代码不收取`cminusf_builder.cpp`
+        **注**：`before_optimization`以Lab3答案为基准，Lab4代码不收取`cminusf_builder.cpp`
         
         若编译出错或者运行出错将不得分，此外评测时所用的`testcase`与发布的不完全一致，最终的评分会映射到15分的总分区间。
         
@@ -359,7 +357,7 @@ testcase-8              1.98                    0.25              0.25
   * 迟交需要邮件通知 TA : 
     * 邮箱: 
     chen16614@mail.ustc.edu.cn
-    * 邮件主题: lab4迟交-队长学号
+    * 邮件主题: Lab4迟交-队长学号
     * 内容: 包括迟交原因、最后版本commitID、迟交时间等
     
   * 迟交分数
