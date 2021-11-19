@@ -300,7 +300,7 @@ testcase-8              1.98                    0.25              0.25
   
     `./src/optimization/ActiveVars.cpp`，`./src/optimization/ConstPropagation.cpp`，`./src/optimization/LoopInvHoist.cpp` 文件和 `./Reports/4-ir-opt` 目录下报告，其中`report-phase1.md` 会在阶段一的ddl的时候进行验收；`report-phase2.md`以及实现代码会在阶段二的ddl的时候进行验收。
   
-* 评分标准: 最终评分按照[组队规则](http://222.195.68.197/staff/2020-fall-notice_board/-/issues/89)，实验完成分（总分 60 分）组成如下：
+* 评分标准: 最终评分按照[组队规则](http://211.86.152.198/staff/2021fall-notice_board/-/issues/46)，实验完成分（总分 60 分）组成如下：
   * 阶段一 代码阅读
     
     * report-phase1.md (5 分)
