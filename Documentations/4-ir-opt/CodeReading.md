@@ -71,7 +71,9 @@
 
 2. `phi`节点是SSA的关键特征，请**简述**`phi`节点的概念，以及引入`phi`节点的理由。
 
-3. 下面给出的`cminus`代码显然不是SSA的，请使用lab3的功能将其生成为LLVM IR（**不加任何Pass**），说明对一个变量的多次赋值变成了什么形式？
+3. 下面给出的`cminus`代码显然不是SSA的，后面是使用lab3的功能将其生成的LLVM IR（**未加任何Pass**），说明对一个变量的多次赋值变成了什么形式？
+
+   `cminus`代码：
 
    ```c
    int main(void){
@@ -83,7 +85,38 @@
    }
    ```
 
-4. 使用lab3的功能，将下面给出的`cminus`程序生成为LLVM IR，与**开启**`Mem2Reg`生成的LLVM IR对比，每条`load`, `store`指令发生了变化吗？变化或者没变化的原因是什么？请分类解释。
+   生成的LLVM IR：
+
+   ```c
+   ; ModuleID = 'cminus'
+   source_filename = "non_ssa.cminus"
+   
+   declare i32 @input()
+   
+   declare void @output(i32)
+   
+   declare void @outputFloat(float)
+   
+   declare void @neg_idx_except()
+   
+   define i32 @main() {
+   label_entry:
+     %op0 = alloca i32
+     store i32 0, i32* %op0
+     %op1 = add i32 1, 2
+     store i32 %op1, i32* %op0
+     %op2 = load i32, i32* %op0
+     %op3 = mul i32 %op2, 4
+     store i32 %op3, i32* %op0
+     ret i32 0
+   }
+   ```
+
+   
+
+4. 对下面给出的`cminus`程序，使用lab3的功能，分别关闭/开启`Mem2Reg`生成LLVM IR。对比生成的两段LLVM IR，开启`Mem2Reg`后，每条`load`, `store`指令发生了变化吗？变化或者没变化的原因是什么？请分类解释。
+
+   `cminus`代码：
 
    ```c
    int globVar;
@@ -104,6 +137,107 @@
        return 0;
    }
    ```
+
+   没开启`Mem2Reg`生成的LLVM IR：
+
+   ```c
+   ; ModuleID = 'cminus'
+   source_filename = "mem2reg_example.cminus"
+   
+   @globVar = global i32 zeroinitializer
+   declare i32 @input()
+   
+   declare void @output(i32)
+   
+   declare void @outputFloat(float)
+   
+   declare void @neg_idx_except()
+   
+   define i32 @func(i32 %arg0) {
+   label_entry:
+     %op1 = alloca i32
+     store i32 %arg0, i32* %op1
+     %op2 = load i32, i32* %op1
+     %op3 = icmp sgt i32 %op2, 0
+     %op4 = zext i1 %op3 to i32
+     %op5 = icmp ne i32 %op4, 0
+     br i1 %op5, label %label6, label %label7
+   label6:                                                ; preds = %label_entry
+     store i32 0, i32* %op1
+     br label %label7
+   label7:                                                ; preds = %label_entry, %label6
+     %op8 = load i32, i32* %op1
+     ret i32 %op8
+   }
+   define i32 @main() {
+   label_entry:
+     %op0 = alloca [10 x i32]
+     %op1 = alloca i32
+     store i32 1, i32* @globVar
+     %op2 = icmp slt i32 5, 0
+     br i1 %op2, label %label3, label %label4
+   label3:                                                ; preds = %label_entry
+     call void @neg_idx_except()
+     ret i32 0
+   label4:                                                ; preds = %label_entry
+     %op5 = getelementptr [10 x i32], [10 x i32]* %op0, i32 0, i32 5
+     store i32 999, i32* %op5
+     store i32 2333, i32* %op1
+     %op6 = load i32, i32* %op1
+     %op7 = call i32 @func(i32 %op6)
+     %op8 = load i32, i32* @globVar
+     %op9 = call i32 @func(i32 %op8)
+     ret i32 0
+   }
+   ```
+
+   开启了`Mem2Reg`生成的LLVM IR：
+
+   ```c
+   ; ModuleID = 'cminus'
+   source_filename = "mem2reg_example.cminus"
+   
+   @globVar = global i32 zeroinitializer
+   declare i32 @input()
+   
+   declare void @output(i32)
+   
+   declare void @outputFloat(float)
+   
+   declare void @neg_idx_except()
+   
+   define i32 @func(i32 %arg0) {
+   label_entry:
+     %op3 = icmp sgt i32 %arg0, 0
+     %op4 = zext i1 %op3 to i32
+     %op5 = icmp ne i32 %op4, 0
+     br i1 %op5, label %label6, label %label7
+   label6:                                                ; preds = %label_entry
+     br label %label7
+   label7:                                                ; preds = %label_entry, %label6
+     %op9 = phi i32 [ %arg0, %label_entry ], [ 0, %label6 ]
+     ret i32 %op9
+   }
+   define i32 @main() {
+   label_entry:
+     %op0 = alloca [10 x i32]
+     store i32 1, i32* @globVar
+     %op2 = icmp slt i32 5, 0
+     br i1 %op2, label %label3, label %label4
+   label3:                                                ; preds = %label_entry
+     call void @neg_idx_except()
+     ret i32 0
+   label4:                                                ; preds = %label_entry
+     %op5 = getelementptr [10 x i32], [10 x i32]* %op0, i32 0, i32 5
+     store i32 999, i32* %op5
+     %op7 = call i32 @func(i32 2333)
+     %op8 = load i32, i32* @globVar
+     %op9 = call i32 @func(i32 %op8)
+     ret i32 0
+   }
+   ```
+
+   
 
 5. 指出放置phi节点的代码，并解释是如何使用支配树的信息的。需要给出代码中的成员变量或成员函数名称。
 
