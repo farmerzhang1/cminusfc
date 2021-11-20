@@ -2,17 +2,6 @@
 #include "utils.hpp"
 #include <algorithm>
 
-// You can define global variables here
-// to store state
-
-/*
- * use CMinusfBuilder::Scope to construct scopes
- * scope.enter: enter a new scope
- * scope.exit: exit current scope
- * scope.push: add a new binding to current scope
- * scope.find: find and return the value bound to the name
- */
-
 void CminusfBuilder::visit(ASTProgram &node)
 {
     for (const auto &decl : node.declarations)
@@ -29,56 +18,35 @@ void CminusfBuilder::visit(ASTNum &node)
     case CminusType::TYPE_INT:
         val = ConstantInt::get(node.i_val, module.get());
         break;
-    default: /* [[unlikely]] (wanted to use this qwq) */
+    default: /* [[unlikely]] */
         break;
     }
 }
 
 void CminusfBuilder::visit(ASTVarDeclaration &node)
 {
-    Value *v; // do we still need it?
     Type *t;
     t = type(node.type); // utility
-    if (node.num)        // array type // int a[10];
+    if (node.num)
         t = module->get_array_type(t, node.num->i_val);
 
     if (scope.in_global())
     {
         Constant *init = ConstantZero::get(t, module.get());
-        // if (node.num)
-        // {
-        //     std::vector<Constant *> vec(node.num->i_val, init);
-        //     init = ConstantArray::get(static_cast<ArrayType *>(t), vec);
-        // }
         val = GlobalVariable::create(node.id, module.get(), t, false, init);
     }
     else
         val = builder->create_alloca(t);
     assert(scope.push(node.id, val));
-    // if (!scope.push(node.id, val))
-    // {
-    //     // why not just shadow it?
-    //     // well, c doesn't support it...
-    // }
 }
 
 void CminusfBuilder::visit(ASTFunDeclaration &node)
 {
     std::vector<Type *> params;
-    /*
-    how to use std::transform & std::for_each
-    参数：
-    first iterator(iterator基本上就是指针): 通常是 vec.begin()
-    last iterator: 通常是vec.end() (.end()指向的是最后一个元素再往后加一)
-    result: 存储对第一个容器迭代的结果
-    func: lambda 表达式 (匿名函数) [capture list](parameters){body} capture就是在body中出现但是不在参数列表里的变量
-    params.push_back( return-thing )
-    */
-    // so this basically traverse NODE.PARAMS and store each parameter's type in PARAMS
     std::transform(node.params.begin(), node.params.end(), std::back_inserter(params), [this](const auto &param)
                    {
                        auto contained = type(param->type);
-                       return param->isarray ? this->module->get_pointer_type(contained) : contained;
+                       return param->isarray ? module->get_pointer_type(contained) : contained;
                    });
     auto func_type = FunctionType::get(type(node.type), params);
     auto f = Function::create(func_type, node.id, module.get());
@@ -97,22 +65,25 @@ void CminusfBuilder::visit(ASTFunDeclaration &node)
     }
     bb_counter = 0;
     return_type = node.type;
+    if (node.type != CminusType::TYPE_VOID)
+    {
+        val = builder->create_alloca(type(return_type));
+        scope.push(return_val, val);
+    }
     node.compound_stmt->accept(*this);
+    if (!builder->get_insert_block()->get_terminator())
+    {
+        auto ret = std::make_unique<ASTReturnStmt>();
+        ret->accept(*this);
+    }
 }
 
-// FIXME: push {id, val} when in a new scope, but we only enter the new one when visiting compount statement
-// do we need another boolean?
 void CminusfBuilder::visit(ASTParam &node)
 {
     Type *t = type(node.type);
     if (node.isarray)
-    {
-        val = builder->create_alloca(Type::get_pointer_type(t));
-    }
-    else
-    {
-        val = builder->create_alloca(t);
-    }
+        t = Type::get_pointer_type(t);
+    val = builder->create_alloca(t);
     assert(scope.push(node.id, val));
 }
 
@@ -120,8 +91,8 @@ void CminusfBuilder::visit(ASTCompoundStmt &node)
 {
     if (!enter_in_fun_decl)
         scope.enter();
-
     enter_in_fun_decl = false;
+
     for (auto &decl_ptr : node.local_declarations)
         decl_ptr->accept(*this);
     for (auto &stmt_ptr : node.statement_list)
@@ -137,6 +108,8 @@ void CminusfBuilder::visit(ASTExpressionStmt &node)
 
 void CminusfBuilder::visit(ASTSelectionStmt &node)
 {
+    // TODO: factor out common code
+    bool if_return_in_branch{false}, else_return_in_branch{false};
     BasicBlock *falseBB = nullptr;
     node.expression->accept(*this);
     if (val->get_type()->get_size() > 1)
@@ -146,39 +119,70 @@ void CminusfBuilder::visit(ASTSelectionStmt &node)
         else
             val = comp_float_map[RelOp::OP_NEQ](val, CONST_FP(0));
     }
-    auto trueBB = BasicBlock::create(module.get(), "true" + std::to_string(bb_counter++), builder->get_insert_block()->get_parent());
+    this->in_branch = true;
+    auto current_func = builder->get_insert_block()->get_parent();
+    auto trueBB = BasicBlock::create(module.get(),
+                                     "true" + std::to_string(bb_counter++),
+                                     current_func);
     if (node.else_statement)
-        falseBB = BasicBlock::create(module.get(), "false" + std::to_string(bb_counter++), builder->get_insert_block()->get_parent());
-    auto out = BasicBlock::create(module.get(), "out" + std::to_string(bb_counter++), builder->get_insert_block()->get_parent());
+        falseBB = BasicBlock::create(module.get(),
+                                     "false" + std::to_string(bb_counter++),
+                                     current_func);
+    auto out = BasicBlock::create(module.get(),
+                                  "out" + std::to_string(bb_counter++),
+                                  current_func);
     builder->create_cond_br(val, trueBB, falseBB ? falseBB : out);
+    in_branch = true;
+
     builder->set_insert_point(trueBB);
-    return_now = false;//FIXME
-    trueBB_enter = true;
     node.if_statement->accept(*this);
-    builder->create_br(out);
+    if (!return_in_branch)
+        builder->create_br(out);
+    if_return_in_branch = return_in_branch;
+    return_in_branch = false;
     if (node.else_statement)
     {
         builder->set_insert_point(falseBB);
-        return_now = false;
-        falseBB_enter = true;
         node.else_statement->accept(*this);
-        builder->create_br(out);
+        if (!return_in_branch)
+            builder->create_br(out);
+        else_return_in_branch = return_in_branch;
+        return_in_branch = false;
     }
+    in_branch = false;
     builder->set_insert_point(out);
-    if (branch_return)
+    if (if_return_in_branch && else_return_in_branch)
     {
-        Value *ptr = scope.find("");
-        auto return_lalala = builder->create_load(ptr);
-        builder->create_ret(return_lalala);
-        branch_return = false;
+        if (return_type != CminusType::TYPE_VOID)
+        {
+            val = builder->create_load(scope.find(return_val));
+            builder->create_ret(val);
+        }
+        else
+            builder->create_void_ret();
+
+        builder->set_insert_point(trueBB);
+        builder->create_br(out);
+        builder->set_insert_point(falseBB);
+        builder->create_br(out);
+
+        builder->set_insert_point(out); // TODO: don't generate any more instructions
     }
 }
 
 void CminusfBuilder::visit(ASTIterationStmt &node)
 {
-    auto predicate = BasicBlock::create(module.get(), "predicate" + std::to_string(bb_counter++), builder->get_insert_block()->get_parent());
-    auto body = BasicBlock::create(module.get(), "body" + std::to_string(bb_counter++), builder->get_insert_block()->get_parent());
-    auto out = BasicBlock::create(module.get(), "out" + std::to_string(bb_counter++), builder->get_insert_block()->get_parent());
+    auto current_func = builder->get_insert_block()->get_parent();
+
+    auto predicate = BasicBlock::create(module.get(),
+                                        "predicate" + std::to_string(bb_counter++),
+                                        current_func);
+    auto body = BasicBlock::create(module.get(),
+                                   "body" + std::to_string(bb_counter++),
+                                   current_func);
+    auto out = BasicBlock::create(module.get(),
+                                  "out" + std::to_string(bb_counter++),
+                                  current_func);
 
     builder->create_br(predicate);
 
@@ -203,46 +207,72 @@ void CminusfBuilder::visit(ASTReturnStmt &node)
     if (node.expression)
     {
         CminusType t = return_type;
-        node.expression->accept(*this);//FIXME
-        if (return_now)
+        node.expression->accept(*this);
+        if (in_branch)
         {
-            if (branch_return)
-            {
-                Value *ptr = scope.find("");
-                builder->create_store(convert(val, type(t)), ptr);
-            }
-            else
-            {
-                auto tem = builder->create_alloca(type(t));
-                builder->create_store(convert(val, type(t)), tem);
-                scope.push("", tem);
-            }
-            builder->create_ret(convert(val, type(t)));
+            Value *ptr = scope.find(return_val);
+            builder->create_store(convert(val, type(t)), ptr);
+            return_in_branch = true;
+            pre_returns = true;
         }
         else
         {
-            branch_return = true;
-            if (trueBB_enter && falseBB_enter)
+            Value *ptr = scope.find(return_val);
+            builder->create_store(convert(val, type(t)), ptr);
+            if (pre_returns)
             {
-                Value *ptr = scope.find("");
-                builder->create_store(convert(val, type(t)), ptr);
+                auto returnBB = BasicBlock::create(module.get(), "return", builder->get_insert_block()->get_parent());
+                builder->create_br(returnBB);
+                for (auto &bb : builder->get_insert_block()->get_parent()->get_basic_blocks()) // 这也绕太多圈了
+                {
+                    if (bb == returnBB)
+                        continue;
+                    if (!bb->get_terminator())
+                    {
+                        builder->set_insert_point(bb);
+                        builder->create_br(returnBB);
+                    }
+                }
+                builder->set_insert_point(returnBB);
             }
-            else
-            {
-                auto tem = builder->create_alloca(type(t));
-                builder->create_store(convert(val, type(t)), tem);
-                scope.push("", tem);
-            }
+            val = builder->create_load(ptr);
+            builder->create_ret(val);
         }
-        return_now = true;
     }
     else
-        builder->create_void_ret();
+    {
+        if (in_branch)
+        {
+            return_in_branch = true;
+            pre_returns = true;
+        }
+        else
+        {
+            if (pre_returns)
+            {
+                auto returnBB = BasicBlock::create(module.get(), "return", builder->get_insert_block()->get_parent());
+                builder->create_br(returnBB);
+                for (auto &bb : builder->get_insert_block()->get_parent()->get_basic_blocks()) // 这也绕太多圈了
+                {
+                    if (bb == returnBB)
+                        continue;
+                    if (!bb->get_terminator())
+                    {
+                        builder->set_insert_point(bb);
+                        builder->create_br(returnBB);
+                    }
+                }
+                builder->set_insert_point(returnBB);
+            }
+
+            builder->create_void_ret();
+        }
+    }
 }
 
 void CminusfBuilder::visit(ASTVar &node)
 {
-    Value *ptr = scope.find(node.id); // ptr = alloca([10 x i32])
+    Value *ptr = scope.find(node.id); // consider ptr = alloca([10 x i32])
     if (node.expression)
     {
         bool temp = address_only;
@@ -300,7 +330,6 @@ void CminusfBuilder::visit(ASTSimpleExpression &node)
         {
             lhs = convert(lhs, module->get_float_type()); // convert to float, return it directly if is float already
             rhs = convert(rhs, module->get_float_type());
-            // 可不可以用一个 map, 从 operator 映射到 函数
             val = comp_float_map[node.op](lhs, rhs);
         }
     }
@@ -363,12 +392,10 @@ void CminusfBuilder::visit(ASTTerm &node)
 void CminusfBuilder::visit(ASTCall &node)
 {
     auto func = static_cast<Function *>(scope.get_global(node.id));
-    // func->get_function_type()->get_param_type(0);
     std::vector<Value *> args;
     size_t i = 0;
     std::transform(node.args.begin(), node.args.end(), std::back_inserter(args), [this, &i, func](auto &e)
                    {
-                       // so storing means we need its address, not value
                        address_only = func->get_function_type()->get_param_type(i)->is_pointer_type();
                        e->accept(*this);
                        address_only = false;

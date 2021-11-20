@@ -39,7 +39,7 @@ public:
         return result.second;
     }
 
-    Value *find(std::string &name)
+    Value *find(const std::string &name)
     {
         for (auto s = inner.rbegin(); s != inner.rend(); s++)
         {
@@ -51,7 +51,7 @@ public:
         }
         return nullptr;
     }
-    Value *find(std::string &&name)
+    Value *find(const std::string &&name)
     {
         for (auto s = inner.rbegin(); s != inner.rend(); s++)
         {
@@ -153,13 +153,12 @@ public:
     Type *type(CminusType t) const;
     Value *convert(Value *n, Type *to);
     Value *val = nullptr;
-    bool address_only = false;
-    bool pre_scope_enter = false;
-    bool return_now = true;
-    bool branch_return = false;
-    bool trueBB_enter = false;
-    bool falseBB_enter = false;
-    bool enter_in_fun_decl = false;
+    bool address_only = false;        // dealing with pointers
+    bool return_in_branch = false;    // 用在 selection statement 判断分支语句中是否有返回，如果有则不跳转到 out 中
+    bool in_branch = false;           // 当前 builder 处于分支语句中，主要用在 return statement 判断该 store 还是 load
+    bool pre_returns = false;         // 在之前的语句中有 return, 创建一个基本块用来返回
+    bool enter_in_fun_decl = false;   // need to push function parameters and return value into the scope
+    const std::string return_val{""}; // set to empty string to avoid conflicts, load it when need to return (at the end of a function)
     CminusType return_type;
     size_t bb_counter{0};
     std::map<AddOp, std::function<BinaryInst *(Value *, Value *)>> add_int_map = {
