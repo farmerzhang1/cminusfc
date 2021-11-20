@@ -138,7 +138,7 @@
    }
    ```
 
-   没开启`Mem2Reg`生成的LLVM IR：
+   关闭`Mem2Reg`生成的LLVM IR：
 
    ```c
    ; ModuleID = 'cminus'
