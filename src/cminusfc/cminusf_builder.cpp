@@ -204,6 +204,7 @@ void CminusfBuilder::visit(ASTIterationStmt &node)
 
 void CminusfBuilder::visit(ASTReturnStmt &node)
 {
+    // TODO: factor out common code
     if (node.expression)
     {
         CminusType t = return_type;

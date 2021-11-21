@@ -261,7 +261,7 @@ $`\text{call} \rightarrow \textbf{ID}\ \textbf{(}\ \text{args} \textbf{)}`$
 
 #### 样例一：result
 
-```
+```c
 int result(void){
     int i;
     if (1) {
@@ -303,7 +303,7 @@ label_return:                                                ; preds = %label_ou
 
 #### 样例二：gcd
 
-```
+```c
 int gcd (int u, int v) {
     if (v == 0) return u;
     else return gcd(v, u - u / v * v);
@@ -423,7 +423,7 @@ val = add_int_map[node.op](lhs, rhs);
 
 ### 实验反馈 （可选 不会评分）
 
-对本次实验的建议
+减少一些 C-like 的 feature ，增加OOP或函数式的语言特性。如禁止隐式类型转换，分支语句中必须有 else ；增加面向对象中的类，或者允许 immutable data 等等。
 
 ### 组间交流 （可选）
 
