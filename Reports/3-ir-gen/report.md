@@ -242,15 +242,90 @@ $`\text{call} \rightarrow \textbf{ID}\ \textbf{(}\ \text{args} \textbf{)}`$
 
 #### 样例一：result
 
+```
+int result(void){
+    int i;
+    if (1) {
+        i = 1;
+        return 0;
+    } else {
+        i = 2;
+    }
+    output(3);
+    return 3;
+}
+```
+
 实现如下
 
-![pictures1](./figs/1.jpg)
+```
+define i32 @result() {
+label_entry:
+  %op0 = alloca i32
+  %op1 = alloca i32
+  %op2 = icmp ne i32 1, 0
+  br i1 %op2, label %label_true0, label %label_false1
+label_true0:                                                ; preds = %label_entry
+  store i32 1, i32* %op1
+  store i32 0, i32* %op0
+  br label %label_return
+label_false1:                                                ; preds = %label_entry
+  store i32 2, i32* %op1
+  br label %label_out2
+label_out2:                                                ; preds = %label_false1
+  call void @output(i32 3)
+  store i32 3, i32* %op0
+  br label %label_return
+label_return:                                                ; preds = %label_out2, %label_true0
+  %op3 = load i32, i32* %op0
+  ret i32 %op3
+}
+```
 
 #### 样例二：gcd
 
+```
+int gcd (int u, int v) {
+    if (v == 0) return u;
+    else return gcd(v, u - u / v * v);
+}
+```
+
 实现如下
 
-![pictures2](./figs/2.jpg)
+
+```
+define i32 @gcd(i32 %u, i32 %v) {
+label_entry:
+  %op0 = alloca i32
+  store i32 %u, i32* %op0
+  %op1 = alloca i32
+  store i32 %v, i32* %op1
+  %op2 = alloca i32
+  %op3 = load i32, i32* %op1
+  %op4 = icmp eq i32 %op3, 0
+  br i1 %op4, label %label_true0, label %label_false1
+label_true0:                                                ; preds = %label_entry
+  %op5 = load i32, i32* %op0
+  store i32 %op5, i32* %op2
+  br label %label_out2
+label_false1:                                                ; preds = %label_entry
+  %op6 = load i32, i32* %op1
+  %op7 = load i32, i32* %op0
+  %op8 = load i32, i32* %op0
+  %op9 = load i32, i32* %op1
+  %op10 = sdiv i32 %op8, %op9
+  %op11 = load i32, i32* %op1
+  %op12 = mul i32 %op10, %op11
+  %op13 = sub i32 %op7, %op12
+  %op14 = call i32 @gcd(i32 %op6, i32 %op13)
+  store i32 %op14, i32* %op2
+  br label %label_out2
+label_out2:                                                ; preds = %label_true0, %label_false1
+  %op15 = load i32, i32* %op2
+  ret i32 %op15
+}
+```
 
 ## 实验设计
 
