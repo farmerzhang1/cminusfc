@@ -152,6 +152,24 @@ public:
     }
     Type *type(CminusType t) const;
     Value *convert(Value *n, Type *to);
+
+private:
+    virtual void visit(ASTProgram &) override final;
+    virtual void visit(ASTNum &) override final;
+    virtual void visit(ASTVarDeclaration &) override final;
+    virtual void visit(ASTFunDeclaration &) override final;
+    virtual void visit(ASTParam &) override final;
+    virtual void visit(ASTCompoundStmt &) override final;
+    virtual void visit(ASTExpressionStmt &) override final;
+    virtual void visit(ASTSelectionStmt &) override final;
+    virtual void visit(ASTIterationStmt &) override final;
+    virtual void visit(ASTReturnStmt &) override final;
+    virtual void visit(ASTAssignExpression &) override final;
+    virtual void visit(ASTSimpleExpression &) override final;
+    virtual void visit(ASTAdditiveExpression &) override final;
+    virtual void visit(ASTVar &) override final;
+    virtual void visit(ASTTerm &) override final;
+    virtual void visit(ASTCall &) override final;
     Value *val = nullptr;
     bool address_only = false;        // dealing with pointers
     bool return_in_branch = false;    // 用在 selection statement 判断分支语句中是否有返回，如果有则不跳转到 out 中
@@ -207,25 +225,6 @@ public:
          { return builder->create_fcmp_le(l, r); }},
         {RelOp::OP_LT, [this](Value *l, Value *r)
          { return builder->create_fcmp_lt(l, r); }}};
-
-private:
-    virtual void visit(ASTProgram &) override final;
-    virtual void visit(ASTNum &) override final;
-    virtual void visit(ASTVarDeclaration &) override final;
-    virtual void visit(ASTFunDeclaration &) override final;
-    virtual void visit(ASTParam &) override final;
-    virtual void visit(ASTCompoundStmt &) override final;
-    virtual void visit(ASTExpressionStmt &) override final;
-    virtual void visit(ASTSelectionStmt &) override final;
-    virtual void visit(ASTIterationStmt &) override final;
-    virtual void visit(ASTReturnStmt &) override final;
-    virtual void visit(ASTAssignExpression &) override final;
-    virtual void visit(ASTSimpleExpression &) override final;
-    virtual void visit(ASTAdditiveExpression &) override final;
-    virtual void visit(ASTVar &) override final;
-    virtual void visit(ASTTerm &) override final;
-    virtual void visit(ASTCall &) override final;
-
     IRBuilder *builder;
     Scope scope;
     std::unique_ptr<Module> module;
