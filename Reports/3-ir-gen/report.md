@@ -352,7 +352,7 @@ label_out2:                                                ; preds = %label_true
 
 #### address_only
 
-该全局变量用以判断是否需要进行地址操作。若目标操作为值，则需要进行 load 或 store 操作，操作对应的值。
+该全局变量用以判断是否需要进行地址操作。若需要var的值，则需要进行对地址ptr进行load操作；反之返回地址即可。
 ```cpp
 val = this->address_only ? ptr : builder->create_load(ptr);
 ```
@@ -365,7 +365,7 @@ if (!return_in_branch)
 ```
 #### in_branch
 
-该全局变量用于判断当前 builder 是否处于分支语句中，主要用在 return statement 判断该 store 还是 load
+该全局变量用于判断当前的返回语句是否处于分支语句中，如果是则暂时不创建ret语句，而是将返回值存到return_val中；
 ```cpp
 if (in_branch)
 {
@@ -377,7 +377,7 @@ if (in_branch)
 ```
 #### pre_returns
 
-该全局变量用于判断在之前的语句中是否有 return, 创建一个基本块用来返回
+该全局变量用于判断在之前的语句中是否有 return, 如果有则要创建一个基本块用来返回，否则不需要。
 ```cpp
 if (pre_returns)
     {
@@ -388,7 +388,7 @@ if (pre_returns)
 ```
 #### enter_in_fun_decl
 
-该全局变量用于将函数参数和返回值写入到scope域中。
+该全局变量用于判断是否已从函数部分进入scope域，对于全局变量中的name和函数体中声明的name可能产生冲突，因此要在某些情况从函数声明时便进入scope域，其他情况则从compoundstmt进入即可。
 ```cpp
 if (!enter_in_fun_decl)
         scope.enter();
@@ -396,7 +396,7 @@ enter_in_fun_decl = false;
 ```
 #### return_val
 
-该全局变量用于中间存储函数内的返回值，设置为空避免冲突的发生。
+该全局变量用于存储某些具有返回语句的基本块的返回值，然后在最后的返回模块里取出并ret。名字设置为空避免冲突。
 ```
 const std::string return_val{""};
 val = builder->create_load(scope.find(return_val));
