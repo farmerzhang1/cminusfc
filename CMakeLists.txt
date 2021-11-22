@@ -36,6 +36,7 @@ add_definitions(-DCMAKE_LIBRARY_OUTPUT_DIRECTORY="${CMAKE_LIBRARY_OUTPUT_DIRECTO
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_BINARY_DIR})
 include_directories(include/lightir)
+include_directories(include/optimization)
 
 add_subdirectory(src)
 add_subdirectory(tests)

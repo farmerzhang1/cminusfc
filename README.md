@@ -10,7 +10,10 @@
   + DDL：2021-10-22 23:59:59 (UTC+8)
 * [lab3](./Documentations/3-ir-gen/)
   + DDL: 2021-11-21 23:59:59 (UTC+8)
-
+* [lab4](./Documentations/4-ir-opt)
+  + DDL：
+    + **阶段一**：2021/11/29 23:59:59 (UTC+8)  
+    + **阶段二**：2021/12/13 23:59:59 (UTC+8) 
 
 ## FAQ: How to merge upstream remote branches
 
