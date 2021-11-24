@@ -5,7 +5,7 @@
     - [主要工作](#主要工作)
       - [阶段一：代码与材料阅读](#阶段一代码与材料阅读)
       - [阶段二：基本优化 pass 开发](#阶段二基本优化-pass-开发)
-      - [Lab4 代码与实验报告提交](#lab4代码与实验报告提交)
+      - [Lab4代码与实验报告提交](#lab4代码与实验报告提交)
   - [1. 实验框架](#1-实验框架)
   - [2. 运行与调试](#2-运行与调试)
     - [运行 cminusfc](#运行-cminusfc)
@@ -34,7 +34,7 @@
 实验目的：
 
 1. 通过阅读优化 pass ，学习优化的基本流程
-2. 掌握如何开发基于 lightir 的优化 pass 
+2. 掌握如何开发基于 lightir 的优化 pass
 
 实验任务：
 
@@ -45,9 +45,9 @@
 #### 阶段二：基本优化 pass 开发
 
 1. **常量传播与死代码删除**
-   如果一个变量的值可以在编译优化阶段直接计算出，那么就直接将该变量替换为常量（即计算出的结果值）。补充以下几点需要注意的地方：  
+   如果一个变量的值可以在编译优化阶段直接计算出，那么就直接将该变量替换为常量（即计算出的结果值）。补充以下几点需要注意的地方：
     a. 只需要考虑过程内的常量传播，可以不用考虑数组，**全局变量只需要考虑块内的常量传播**，这里举个例子来说明常量传播：
-   
+
     ```cpp
     %a = 1 + 1;
     %b = %a + %c;
@@ -61,12 +61,12 @@
     ```cpp
     %b = 2 + %c;
     ```
-    b. 整形浮点型都需要考虑。  
+    b. 整形浮点型都需要考虑。
     c. 对于`a = 1 / 0`的情形，可以不考虑，即可以做处理也可以不处理。
-   
+
 2. **循环不变式外提**
     要能够实现将与循环无关的表达式提取到循环的外面。不用考虑数组与全局变量。举个例子：
-    
+
     ```cpp
     while(i < 10){
       while(j < 10){
@@ -86,10 +86,10 @@
       i = i + 1;
     }
     ```
-    下面给出一些循环外提的 tips:  
-    a. 思考如何判断语句与循环无关，且外提没有副作用  
+    下面给出一些循环外提的 tips:
+    a. 思考如何判断语句与循环无关，且外提没有副作用
     b. 循环的条件块（就是在 LoopSearch 中找到的 Base 块）最多只有两个前驱，思考下，不变式应该外提到哪一个前驱。
-    
+
 3. **活跃变量分析**
 
    能够实现分析 bb 块的入口和出口的活跃变量，参考资料见附件(紫书9.2.4节)。
@@ -104,12 +104,12 @@
 
    **提示**：材料中没有`phi`节点的设计，数据流方程：
 
-   $`OUT[B] =\cup_{s是B的后继}IN[S]`$   
-   
-   的定义说明了S入口处活跃的变量在它所有前驱的出口处都是活跃的。由于`phi`指令的特殊性，例如`%0 = phi [%op1, %bb1], [%op2, %bb2]`如果使用如上数据流方程，则默认此`phi`指令同时产生了`op1`与`op2`的活跃性。事实上，只有控制流从`%bb1`传过来phi才产生`%op1`的活跃性，从`%bb2`传过来phi才产生`%op2`的活跃性。因此对此数据流方程需要做一些调整：  
-   
-   $`OUT[B] =\cup_{s是B的后继}IN[S]\cup_{s是B的后继} phi\_uses[S,B]`$。  
-   
+   $`OUT[B] =\cup_{s是B的后继}IN[S]`$
+
+   的定义说明了S入口处活跃的变量在它所有前驱的出口处都是活跃的。由于`phi`指令的特殊性，例如`%0 = phi [%op1, %bb1], [%op2, %bb2]`如果使用如上数据流方程，则默认此`phi`指令同时产生了`op1`与`op2`的活跃性。事实上，只有控制流从`%bb1`传过来phi才产生`%op1`的活跃性，从`%bb2`传过来phi才产生`%op2`的活跃性。因此对此数据流方程需要做一些调整：
+
+   $`OUT[B] =\cup_{s是B的后继}IN[S]\cup_{s是B的后继} phi\_uses[S,B]`$。
+
    其中`IN[S]`是S中剔除`phi`指令后分析出的入口变量结果。`phi_uses[S,B]`表示S中的`phi`指令参数中`label`为B的对应变量。举例如下：
 
    ```c
@@ -125,7 +125,7 @@
 
    在这个基本块中 `phi_uses[label4,label59]`={`%op65`，`%op66`，`%op61`}。
 
-   
+
 
 #### Lab4代码与实验报告提交
 1. 基本优化pass的代码都写在`src/optimization/`目录下面，头文件放入`include/optimization/`当中，最后只会在这两个目录下验收代码文件。
@@ -144,7 +144,7 @@ passManager pm(module.get())
 pm.add_pass<Mem2Reg>(emit)	//注册 pass， emit 为true时打印优化后的 ir
 pm.run()	//按照注册的顺序运行 pass 的 run() 函数
 ```
-基本 pass 开发：  
+基本 pass 开发：
 - 每一个 pass 有一个 cpp 文件和对应的 hpp 文件，可以在 hpp 里定义辅助类或者成员变量使用，在 cpp 里的`run()`函数实现你的 pass 。
 
 
@@ -178,7 +178,7 @@ make install
   ```bash
   sudo apt install schedtool
   ```
-  
+
 * 评测脚本会对样例进行编译和执行，然后对生成的可执行文件首先检查结果的正确性，每个样例的正确结果会放在`.out`文件中，结果正确的情况下才会去进一步评测运行时间。另外，在每类样例目录下中的`baseline`目录中还提供了相应 testcase 的`.ll`文件来作为 baseline ，基本 pass 的优化效果得分也是要根据`baseline`的时间来进行计算。
 
 * 如果显示执行时间的表格中出现了`None`则表示该样例有错误。
@@ -193,17 +193,17 @@ make install
 如果完全正确，它会输出：
 ```
 ========== LoopInvHoist ==========
-Compiling  
+Compiling
 100%|███████████████| 8/8 [00:00<00:00, 12.16it/s]
-Evalution 
+Evalution
 100%|███████████████| 8/8 [00:49<00:00,  6.14s/it]
 Compiling  -loop-inv-hoist
 100%|███████████████| 8/8 [00:00<00:00, 11.85it/s]
-Evalution 
+Evalution
 100%|███████████████| 8/8 [00:10<00:00,  1.25s/it]
 Compiling baseline files
 100%|███████████████| 8/8 [00:00<00:00, 13.63it/s]
-Evalution 
+Evalution
 100%|███████████████| 8/8 [00:07<00:00,  1.09it/s]
 testcase         before optimization     after optimization      baseline
 testcase-1              0.63                    0.36              0.36
@@ -266,8 +266,8 @@ testcase-8              1.98                    0.25              0.25
 │       ├── Dominators.cpp                <- 支配树
 │       ├── ActiveVars.cpp                <- 活跃变量
 │       ├── ConstPropagation.cpp          <- 常量传播与死代码删除
-│       └── LoopInvHoist.cpp              <- 循环不变式外提        
-│       
+│       └── LoopInvHoist.cpp              <- 循环不变式外提
+│
 └── tests
     ├── ...
     └── 4-ir-opt
@@ -285,52 +285,52 @@ testcase-8              1.98                    0.25              0.25
 
   **阶段二**：验收Lab4要求提交的代码及`report-phase2.md`
 
-* 提交要求  
+* 提交要求
   本实验是组队实验，我们将收取**队长**实验仓库中的内容
-  
-  * 需要填补 
-  
+
+  * 需要填补
+
     `./include/optimization/ActiveVars.hpp`，`./include/optimization/ConstPropagation.hpp`，`./include/optimization/LoopInvHoist.hpp` `./src/optimization/ActiveVars.cpp`，`./src/optimization/ConstPropagation.cpp.cpp`，`./src/optimization/LoopInvHoist.cpp`
-  
+
   * 需要在 `./Reports/4-ir-opt/` 目录下撰写实验报告，且由队长说明成员贡献比率
-  
-  * 本次实验收取 
-  
-    `./include/optimization/ActiveVars.hpp`，`./include/optimization/ConstPropagation.hpp`，`./include/optimization/LoopInvHoist.hpp` 
-  
+
+  * 本次实验收取
+
+    `./include/optimization/ActiveVars.hpp`，`./include/optimization/ConstPropagation.hpp`，`./include/optimization/LoopInvHoist.hpp`
+
     `./src/optimization/ActiveVars.cpp`，`./src/optimization/ConstPropagation.cpp`，`./src/optimization/LoopInvHoist.cpp` 文件和 `./Reports/4-ir-opt` 目录下报告，其中`report-phase1.md` 会在阶段一的ddl的时候进行验收；`report-phase2.md`以及实现代码会在阶段二的ddl的时候进行验收。
-  
+
 * 评分标准: 最终评分按照[组队规则](http://211.86.152.198/staff/2021fall-notice_board/-/issues/46)，实验完成分（总分 60 分）组成如下：
   * 阶段一 代码阅读
-    
+
     * report-phase1.md (5 分)
   * 阶段二 优化pass开发
     * **基本pass (55 分)**
-      
+
       * report-phase2.md (10 分)
-      
+
       * 常量传播与死代码删除 (15 分)
         ```
-        对于每一个testcase: 
+        对于每一个testcase:
         (before_optimization-after_optimization)/(before_optimization-baseline) > 0.8 得满分
         (before_optimization-after_optimization)/(before_optimization-baseline) > 0.5 得85%分数
         (before_optimization-after_optimization)/(before_optimization-baseline) > 0.2 得60%分数
         ```
         **注**：`before_optimization`以Lab3答案为基准，Lab4代码不收取`cminusf_builder.cpp`
-        
+
         若编译出错或者运行出错将不得分，此外评测时所用的`testcase`与发布的不完全一致，最终的评分会映射到15分的总分区间。
-        
+
       * 循环不变式外提 (15 分)
         评分参考常量传播与死代码删除。
-        
+
       * 活跃变量 (15 分)
-      
+
         活跃变量的一个bb的出口处活跃变量的非空集合算一个分析结果，每个分析结果同分，对于每个分析结果`result`评分采取以下公式，（正确分析结果列表是`answer`）
         ```math
         score = \frac{(answer\cap result).size()-(result-answer\cap result).size()}{answer.size()}
         ```
         例如：
-      
+
         ```json
         "live_out":{
             //...
@@ -345,29 +345,29 @@ testcase-8              1.98                    0.25              0.25
         }
         // 则相比较于答案，缺少了op7，多分析了op8则此条分析结果得分为(4-1)/5=0.6
         ```
-      
-    
+
+
   * 禁止执行恶意代码，违者本次实验0分处理
-  
+
 * 迟交规定
   * `Soft Deadline` :
-  
-    **阶段一**：2021/11/29 23:59:59 (北京标准时间，UTC+8)  
-  
-    **阶段二**：2022/12/13 23:59:59 (北京标准时间，UTC+8) 
-  
+
+    **阶段一**：2021/11/29 23:59:59 (北京标准时间，UTC+8)
+
+    **阶段二**：2022/12/13 23:59:59 (北京标准时间，UTC+8)
+
   * `Hard Deadline`：
-  
-    **阶段一**：2021/12/06 23:59:59 (北京标准时间，UTC+8)  
-  
-    **阶段二**：2022/12/20 23:59:59 (北京标准时间，UTC+8) 
-  
-  * 迟交需要邮件通知 TA : 
-    * 邮箱: 
+
+    **阶段一**：2021/12/06 23:59:59 (北京标准时间，UTC+8)
+
+    **阶段二**：2022/12/20 23:59:59 (北京标准时间，UTC+8)
+
+  * 迟交需要邮件通知 TA :
+    * 邮箱:
     chen16614@mail.ustc.edu.cn
     * 邮件主题: Lab4迟交-队长学号
     * 内容: 包括迟交原因、最后版本commitID、迟交时间等
-    
+
   * 迟交分数
     * x为迟交天数(对于`Soft Deadline`而言)，grade为满分
       ``` bash
@@ -375,7 +375,7 @@ testcase-8              1.98                    0.25              0.25
       final_grade = grade * (0.9)^x, 0 < x <= 7
       final_grade = 0, x > 7 # 这一条严格执行,请对自己负责
       ```
-  
+
 * 关于抄袭和雷同
   经过助教和老师判定属于实验抄袭或雷同情况，所有参与方一律零分，不接受任何解释和反驳（严禁对开源代码或者其他同学代码的直接搬运）。
   如有任何问题，欢迎提issue进行批判指正。

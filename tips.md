@@ -11,3 +11,14 @@
 4. 设置断点，点击下方小虫子，launch debugger
 ## 观察修改了啥
 打开侧边栏，展开最底下的timeline
+## opt
+run
+```
+clang -S -emit-llvm -O -Xclang -disable-llvm-passes <source>
+opt <your passes> <source.ll> -S -o <output-file>
+```
+比如
+```
+clang -S -emit-llvm -O -Xclang -disable-llvm-passes test.c
+opt -mem2reg -sccp test.ll -S -o result.ll
+```
