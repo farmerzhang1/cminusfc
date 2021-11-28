@@ -48,6 +48,7 @@ void LoopSearch::build_cfg(Function *func, std::unordered_set<CFGNode *> &result
 
 // Tarjan algorithm
 // reference: https://baike.baidu.com/item/tarjan%E7%AE%97%E6%B3%95/10687825?fr=aladdin
+// wiki: https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
 bool LoopSearch::strongly_connected_components(
     CFGNodePtrSet &nodes,
     std::unordered_set<CFGNodePtrSet *> &result)
@@ -81,7 +82,7 @@ void LoopSearch::traverse(
         // has visited su
         else if (su->onStack)
         {
-            n->lowlink = std::min(su->index, n->lowlink);
+            n->lowlink = std::min(su->index, n->lowlink); // note this line
         }
     }
 
@@ -96,7 +97,7 @@ void LoopSearch::traverse(
             tmp->onStack = false;
             set->insert(tmp);
             stack.pop_back();
-        } while (tmp != n);
+        } while (tmp != n); // 至少一次因爲有單獨的一個節點
         if (set->size() == 1)
             delete set;
         else
@@ -110,15 +111,10 @@ CFGNodePtr LoopSearch::find_loop_base(
 
     CFGNodePtr base = nullptr;
     for (auto n : *set)
-    {
         for (auto prev : n->prevs)
-        {
             if (set->find(prev) == set->end())
-            {
                 base = n;
-            }
-        }
-    }
+
     if (base != nullptr)
         return base;
     for (auto res : reserved)
@@ -136,7 +132,6 @@ CFGNodePtr LoopSearch::find_loop_base(
 }
 void LoopSearch::run()
 {
-    
 
     auto func_list = m_->get_functions();
     for (auto func : func_list)
@@ -150,20 +145,19 @@ void LoopSearch::run()
         {
             CFGNodePtrSet nodes;
             CFGNodePtrSet reserved;
-            std::unordered_set<CFGNodePtrSet *> sccs;
-            
+            std::unordered_set<CFGNodePtrSet *> sccs; // strongly connected components
+
             // step 1: build cfg
             build_cfg(func, nodes);
             // dump graph
             dump_graph(nodes, func->get_name());
             // step 2: find strongly connected graph from external to internal
+            // how?
             int scc_index = 0;
             while (strongly_connected_components(nodes, sccs))
             {
-
                 if (sccs.size() == 0)
                 {
-                    
                     break;
                 }
                 else
@@ -189,7 +183,7 @@ void LoopSearch::run()
                         func2loop[func].insert(bb_set);
                         base2loop.insert({base->bb, bb_set});
                         loop2base.insert({bb_set, base->bb});
-                        
+
                         // step 5: map each node to loop base
                         for (auto bb : *bb_set)
                         {
@@ -231,8 +225,7 @@ void LoopSearch::run()
             }
             nodes.clear();
         } // else
-
-    } // for (auto func : func_list)
+    }     // for (auto func : func_list)
 }
 
 void LoopSearch::dump_graph(CFGNodePtrSet &nodes, std::string title)
@@ -244,7 +237,7 @@ void LoopSearch::dump_graph(CFGNodePtrSet &nodes, std::string title)
         {
             if (node->bb->get_name() == "")
             {
-                
+
                 return;
             }
             if (base2loop.find(node->bb) != base2loop.end())
@@ -278,7 +271,7 @@ void LoopSearch::dump_graph(CFGNodePtrSet &nodes, std::string title)
         digragh += '}';
         std::ofstream file_output;
         file_output.open(title + ".dot", std::ios::out);
-        
+
         file_output << digragh;
         file_output.close();
         std::string dot_cmd = "dot -Tpng " + title + ".dot" + " -o " + title + ".png";

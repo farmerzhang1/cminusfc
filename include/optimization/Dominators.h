@@ -26,17 +26,17 @@ public:
 
     void add_dom(BasicBlock *bb, BasicBlock *dom_bb) { doms_[bb].insert(dom_bb); }
     std::set<BasicBlock *> &get_doms(BasicBlock *bb) { return doms_[bb]; }
-    void set_doms(BasicBlock *bb, std::set<BasicBlock *> &doms) { doms_[bb].clear(); 
+    void set_doms(BasicBlock *bb, std::set<BasicBlock *> &doms) { doms_[bb].clear();
                                                 doms_[bb].insert(doms.begin(), doms.end()); }
-    
+
     BasicBlock *get_idom(BasicBlock *bb) { return idom_[bb]; }
     void set_idom(BasicBlock *bb, BasicBlock *idom) { idom_[bb] = idom; }
-    
+
     void add_dominance_frontier(BasicBlock *bb, BasicBlock *dom_frontier_bb) { dom_frontier_[bb].insert(dom_frontier_bb); }
     std::set<BasicBlock *> &get_dominance_frontier(BasicBlock *bb) { return dom_frontier_[bb]; }
-    void set_dominance_frontier(BasicBlock *bb, std::set<BasicBlock *> &df) { dom_frontier_[bb].clear(); 
+    void set_dominance_frontier(BasicBlock *bb, std::set<BasicBlock *> &df) { dom_frontier_[bb].clear();
                                                 dom_frontier_[bb].insert(df.begin(), df.end()); }
-    
+
         // successor blocks of this node in dominance tree
     std::set<BasicBlock *> get_dom_tree_succ_blocks(BasicBlock *bb) { return dom_tree_succ_blocks_[bb]; }
     void add_dom_tree_succ_block(BasicBlock *bb, BasicBlock *dom_tree_succ_bb) { dom_tree_succ_blocks_[bb].insert(dom_tree_succ_bb); }

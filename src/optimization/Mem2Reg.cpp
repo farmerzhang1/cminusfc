@@ -4,7 +4,7 @@
 #define IS_GLOBAL_VARIABLE(l_val) dynamic_cast<GlobalVariable *>(l_val)
 #define IS_GEP_INSTR(l_val) dynamic_cast<GetElementPtrInst *>(l_val)
 
-std::map<Value *, std::vector<Value *>> var_val_stack;//全局变量初值提前存入栈中
+std::map<Value *, std::vector<Value *>> var_val_stack; //全局变量初值提前存入栈中
 
 void Mem2Reg::run()
 {
@@ -14,26 +14,26 @@ void Mem2Reg::run()
     for (auto f : m_->get_functions())
     {
         func_ = f;
-        if ( func_->get_basic_blocks().size() >= 1 )
+        if (func_->get_basic_blocks().size() >= 1)
         {
             generate_phi();
             re_name(func_->get_entry_block());
-        }   
+        }
         remove_alloca();
     }
 }
 
 void Mem2Reg::generate_phi()
 {
-    // step 1: find all global_live_var_name x and get their blocks 
-    std::set<Value *> global_live_var_name;
+    // step 1: find all global_live_var_name x and get their blocks
+    std::set<Value *> global_live_var_name; // 有store的变量
     std::map<Value *, std::set<BasicBlock *>> live_var_2blocks;
-    for ( auto bb : func_->get_basic_blocks() )
+    for (auto bb : func_->get_basic_blocks())
     {
         std::set<Value *> var_is_killed;
-        for ( auto instr : bb->get_instructions() )
+        for (auto instr : bb->get_instructions())
         {
-            if ( instr->is_store() )
+            if (instr->is_store())
             {
                 // store i32 a, i32 *b
                 // a is r_val, b is l_val
@@ -50,23 +50,25 @@ void Mem2Reg::generate_phi()
     }
 
     // step 2: insert phi instr
-    std::map<std::pair<BasicBlock *,Value *>, bool> bb_has_var_phi; // bb has phi for var
-    for (auto var : global_live_var_name )
+    std::map<std::pair<BasicBlock *, Value *>, bool> bb_has_var_phi; // bb has phi for var
+    for (auto var : global_live_var_name)
     {
-        std::vector<BasicBlock *> work_list;
+        std::vector<BasicBlock *> work_list; // 有var这个变量的store的每个基本块
         work_list.assign(live_var_2blocks[var].begin(), live_var_2blocks[var].end());
-        for (int i =0 ; i < work_list.size() ; i++ )
-        {   
+        for (int i = 0; i < work_list.size(); i++)
+        {
             auto bb = work_list[i];
-            for ( auto bb_dominance_frontier_bb : dominators_->get_dominance_frontier(bb))
+            for (auto bb_dominance_frontier_bb : dominators_->get_dominance_frontier(bb))
             {
-                if ( bb_has_var_phi.find({bb_dominance_frontier_bb, var}) == bb_has_var_phi.end() )
-                { 
-                    // generate phi for bb_dominance_frontier_bb & add bb_dominance_frontier_bb to work list
+                if (bb_has_var_phi.find({bb_dominance_frontier_bb, var}) == bb_has_var_phi.end())
+                {
+                    // generate phi for bb_dominance_frontier_bb
+                    // add bb_dominance_frontier_bb to work list
+                    // 我们不在builder里面，创建了phi指令也不会马上就print出来，得加进去 bb_dominance_frontier_bb 里
                     auto phi = PhiInst::create_phi(var->get_type()->get_pointer_element_type(), bb_dominance_frontier_bb);
                     phi->set_lval(var);
-                    bb_dominance_frontier_bb->add_instr_begin( phi );
-                    work_list.push_back( bb_dominance_frontier_bb );
+                    bb_dominance_frontier_bb->add_instr_begin(phi);
+                    work_list.push_back(bb_dominance_frontier_bb);
                     bb_has_var_phi[{bb_dominance_frontier_bb, var}] = true;
                 }
             }
@@ -78,26 +80,26 @@ void Mem2Reg::re_name(BasicBlock *bb)
 {
     std::vector<Instruction *> wait_delete;
 
-    for (auto instr : bb->get_instructions() )
+    for (auto instr : bb->get_instructions())
     {
         if (instr->is_phi())
         {
             // step 3: push phi instr as lval's lastest value define
             auto l_val = static_cast<PhiInst *>(instr)->get_lval();
-            var_val_stack[l_val].push_back(instr);         
+            var_val_stack[l_val].push_back(instr);
         }
     }
-    
-    for (auto instr : bb->get_instructions() )
+
+    for (auto instr : bb->get_instructions())
     {
-        if ( instr->is_load() )
+        if (instr->is_load())
         {
             // step 4: replace load with the top of stack[l_val]
             auto l_val = static_cast<LoadInst *>(instr)->get_lval();
 
             if (!IS_GLOBAL_VARIABLE(l_val) && !IS_GEP_INSTR(l_val))
             {
-                if ( var_val_stack.find(l_val)!=var_val_stack.end())
+                if (var_val_stack.find(l_val) != var_val_stack.end())
                 {
                     instr->replace_all_use_with(var_val_stack[l_val].back());
                     wait_delete.push_back(instr);
@@ -115,28 +117,28 @@ void Mem2Reg::re_name(BasicBlock *bb)
                 var_val_stack[l_val].push_back(r_val);
                 wait_delete.push_back(instr);
             }
-        } 
+        }
     }
 
-    for ( auto succ_bb : bb->get_succ_basic_blocks() )
+    for (auto succ_bb : bb->get_succ_basic_blocks())
     {
-        for ( auto instr : succ_bb->get_instructions() )
+        for (auto instr : succ_bb->get_instructions())
         {
-            if ( instr->is_phi())
+            if (instr->is_phi())
             {
                 auto l_val = static_cast<PhiInst *>(instr)->get_lval();
-                if (var_val_stack.find(l_val)!= var_val_stack.end())
-                {                    
-                    assert(var_val_stack[l_val].size()!=0);
+                if (var_val_stack.find(l_val) != var_val_stack.end())
+                {
+                    assert(var_val_stack[l_val].size() != 0);
                     // step 6: fill phi pair parameters
-                    static_cast<PhiInst *>(instr)->add_phi_pair_operand( var_val_stack[l_val].back(), bb);
+                    static_cast<PhiInst *>(instr)->add_phi_pair_operand(var_val_stack[l_val].back(), bb);
                 }
                 // else phi parameter is [ undef, bb ]
             }
         }
     }
 
-    for ( auto dom_succ_bb : dominators_->get_dom_tree_succ_blocks(bb) )
+    for (auto dom_succ_bb : dominators_->get_dom_tree_succ_blocks(bb))
     {
         re_name(dom_succ_bb);
     }
@@ -144,7 +146,7 @@ void Mem2Reg::re_name(BasicBlock *bb)
     for (auto instr : bb->get_instructions())
     {
         // step 7: pop lval's lastest value define
-        if(instr->is_store())
+        if (instr->is_store())
         {
             auto l_val = static_cast<StoreInst *>(instr)->get_lval();
             if (!IS_GLOBAL_VARIABLE(l_val) && !IS_GEP_INSTR(l_val))
@@ -155,14 +157,14 @@ void Mem2Reg::re_name(BasicBlock *bb)
         else if (instr->is_phi())
         {
             auto l_val = static_cast<PhiInst *>(instr)->get_lval();
-            if ( var_val_stack.find(l_val)!=var_val_stack.end())
+            if (var_val_stack.find(l_val) != var_val_stack.end())
             {
                 var_val_stack[l_val].pop_back();
             }
         }
-    } 
+    }
 
-    for ( auto instr : wait_delete)
+    for (auto instr : wait_delete)
     {
         bb->delete_instr(instr);
     }
@@ -176,17 +178,17 @@ void Mem2Reg::remove_alloca()
         for (auto instr : bb->get_instructions())
         {
             auto is_alloca = dynamic_cast<AllocaInst *>(instr);
-            if ( is_alloca)
+            if (is_alloca)
             {
                 bool is_int = is_alloca->get_type()->get_pointer_element_type()->is_integer_type();
                 bool is_float = is_alloca->get_type()->get_pointer_element_type()->is_float_type();
-                if ( is_int || is_float )
+                if (is_int || is_float)
                 {
                     wait_delete.push_back(instr);
                 }
             }
         }
-        for ( auto instr : wait_delete)
+        for (auto instr : wait_delete)
         {
             bb->delete_instr(instr);
         }

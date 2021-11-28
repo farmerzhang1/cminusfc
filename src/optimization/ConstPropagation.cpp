@@ -58,7 +58,6 @@ ConstantInt *cast_constantint(Value *value)
     }
 }
 
-
 void ConstPropagation::run()
 {
     // 从这里开始吧！

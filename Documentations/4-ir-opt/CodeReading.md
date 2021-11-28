@@ -5,10 +5,7 @@
 
 `Control Flow Graph`(以下简称为`CFG`)是一种用有向图来描述程序执行过程的方式，它是对程序块之间的控制流建立的联系。其中，图中的节点表示基本块(`BasicBlock`)，基本块中，除了最后一条指令，其余的指令都是顺序执行不会产生分支跳转；图中的边则表示可能的控制转移。
 
-
 通过对`CFG`的分析，可以找到代码的许多重要结构信息，比如循环。所以`CFG`对于代码优化有着重要的意义，而本次实验的优化Pass，都是建立在对`CFG`的分析与修改上的。在之前的实验中，同学们通过调用LightIR的接口(参考[LightIR介绍](../common/LightIR.md))完成了中间代码生成，同时也通过核心类建立和维护着中间代码的`CFG`，核心类中，`BasicBlock`就可以看作是`CFG`的基本块，类中的成员`pre_bbs_`与`succ_bbs_`就可以记下每个块的前驱后继，通过递归地访问每个块的上述两个成员，就可以遍历整个`CFG`。在本次代码阅读实验部分，同学们请仔细阅读样例代码，掌握如何去调用`LightIR`的接口来开发优化Pass。
-
-
 
 ## LoopSearch
 #### 简介
@@ -50,8 +47,6 @@
 
 4. 某个基本块可以属于多层循环中，`LoopSearch`找出其所属的最内层循环的思路是什么？这里需要用到什么数据？这些数据在何时被维护？需要指出数据的引用与维护的代码，并简要分析。
 
-   
-
 
 ## Mem2Reg
 
@@ -90,15 +85,15 @@
    ```c
    ; ModuleID = 'cminus'
    source_filename = "non_ssa.cminus"
-   
+
    declare i32 @input()
-   
+
    declare void @output(i32)
-   
+
    declare void @outputFloat(float)
-   
+
    declare void @neg_idx_except()
-   
+
    define i32 @main() {
    label_entry:
      %op0 = alloca i32
@@ -112,7 +107,7 @@
    }
    ```
 
-   
+
 
 4. 对下面给出的`cminus`程序，使用lab3的功能，分别关闭/开启`Mem2Reg`生成LLVM IR。对比生成的两段LLVM IR，开启`Mem2Reg`后，每条`load`, `store`指令发生了变化吗？变化或者没变化的原因是什么？请分类解释。
 
@@ -143,16 +138,16 @@
    ```c
    ; ModuleID = 'cminus'
    source_filename = "mem2reg_example.cminus"
-   
+
    @globVar = global i32 zeroinitializer
    declare i32 @input()
-   
+
    declare void @output(i32)
-   
+
    declare void @outputFloat(float)
-   
+
    declare void @neg_idx_except()
-   
+
    define i32 @func(i32 %arg0) {
    label_entry:
      %op1 = alloca i32
@@ -196,16 +191,16 @@
    ```c
    ; ModuleID = 'cminus'
    source_filename = "mem2reg_example.cminus"
-   
+
    @globVar = global i32 zeroinitializer
    declare i32 @input()
-   
+
    declare void @output(i32)
-   
+
    declare void @outputFloat(float)
-   
+
    declare void @neg_idx_except()
-   
+
    define i32 @func(i32 %arg0) {
    label_entry:
      %op3 = icmp sgt i32 %arg0, 0
@@ -237,7 +232,4 @@
    }
    ```
 
-   
-
 5. 指出放置phi节点的代码，并解释是如何使用支配树的信息的。需要给出代码中的成员变量或成员函数名称。
-

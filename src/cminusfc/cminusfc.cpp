@@ -1,6 +1,5 @@
 #include "cminusf_builder.hpp"
 #include "PassManager.hpp"
-#include "LoopSearch.hpp"
 #include "Dominators.h"
 #include "Mem2Reg.hpp"
 #include "LoopSearch.hpp"
