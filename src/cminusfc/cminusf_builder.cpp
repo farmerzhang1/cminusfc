@@ -281,6 +281,8 @@ void CminusfBuilder::visit(ASTFunDeclaration &node)
     return_type = node.type;
     if (node.type != CminusType::TYPE_VOID)
     {
+        // TODO: don't create return_val when there is only one return statement
+        // incooperate it with parser (count return when parsing) (don't know what clang does)
         val = builder->create_alloca(type(return_type));
         scope.push(return_val, val);
     }
@@ -290,6 +292,7 @@ void CminusfBuilder::visit(ASTFunDeclaration &node)
         auto ret = std::make_unique<ASTReturnStmt>();
         ret->accept(*this);
     }
+    pre_returns = false;
 }
 
 void CminusfBuilder::visit(ASTParam &node)
