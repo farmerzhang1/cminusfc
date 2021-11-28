@@ -7,3 +7,5 @@ lex.yy.c
 infer-out/
 result*
 *.ll
+*.png
+*.dot
