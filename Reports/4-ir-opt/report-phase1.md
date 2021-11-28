@@ -54,9 +54,17 @@ for (auto prev : base->prevs)
    3. 直接支配性：d直接支配节点n却又不直接支配任何直接支配节点n的其他节点，可以理解为d离n“最近”
    4. 支配边界：d的支配性停止的点集
 2. phi: 控制流语句的后继基本块无法判断使用的变量来自哪一个路径，引入根据控制流选择多个前驱的变量
-3. 多次load与store
+3. 多次load与store (?? TODO)
 4. 减少了分配函数参数空间的load和store；减少多次load同一个地址；分支语句中的store改为branch后的phi语句
-5. 指出放置phi节点的代码，并解释是如何使用支配树的信息的。需要给出代码中的成员变量或成员函数名称。TODO
+5. `Dominator::run()` 构造了每个函数里的所有bb的支配边界，直接支配节点以及支配树等等；
+
+`Mem2Reg::generate_phi()`中，构造了所有有被赋值的变量的 `global_live_var_name`, 然后在所有的变量所对应的基本块的支配边界构造phi语句；
+
+`Mem2Reg::re_name()`中得到某一个基本块的直接支配节点集合，递归调用re_name
+```cpp
+for (auto dom_succ_bb : dominators_->get_dom_tree_succ_blocks(bb))
+    re_name(dom_succ_bb);
+```
 
 ### 代码阅读总结
 
