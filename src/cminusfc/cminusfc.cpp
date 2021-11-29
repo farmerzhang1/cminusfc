@@ -50,27 +50,27 @@ int main(int argc, char **argv)
                 return 0;
             }
         }
-        else if (argv[i] == "-emit-llvm"s)
+        else if (argv[i] == "-emit-llvm"s || argv[i] == "-el"s)
         {
             emit = true;
         }
-        else if (argv[i] == "-mem2reg"s)
+        else if (argv[i] == "-mem2reg"s || argv[i] == "-m2r"s)
         {
             mem2reg = true;
         }
-        else if (argv[i] == "-loop-search"s)
+        else if (argv[i] == "-loop-search"s || argv[i] == "-ls"s)
         {
             loop_search = true;
         }
-        else if (argv[i] == "-loop-inv-hoist"s)
+        else if (argv[i] == "-loop-inv-hoist"s || argv[i] == "-lih"s)
         {
             loop_inv_hoist = true;
         }
-        else if (argv[i] == "-const-propagation"s)
+        else if (argv[i] == "-const-propagation"s || argv[i] == "-cp"s)
         {
             const_propagation = true;
         }
-        else if (argv[i] == "-active-vars"s)
+        else if (argv[i] == "-active-vars"s || argv[i] == "-av"s)
         {
             activevars = true;
         }
@@ -139,7 +139,7 @@ int main(int argc, char **argv)
     }
     if (const_propagation)
     {
-        PM.add_pass<ConstPropagation>(true);
+        PM.add_pass<ConstPropagation>();
     }
     if (activevars)
     {
@@ -147,7 +147,7 @@ int main(int argc, char **argv)
     }
     if (loop_inv_hoist)
     {
-        PM.add_pass<LoopInvHoist>(true);
+        PM.add_pass<LoopInvHoist>();
     }
     PM.run();
 
