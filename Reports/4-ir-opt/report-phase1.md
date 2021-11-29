@@ -4,11 +4,12 @@
 
 ## 实验要求
 
-请按照自己的理解，写明本次实验需要干什么
+理解常量传播和构造SSA的两个Pass
 
 ## 思考题
 ### LoopSearch
 1. 循环数据结构: CFGNodePtrSet
+
 ```cpp
 struct CFGNode;
 struct CFGNode
@@ -22,7 +23,9 @@ struct CFGNode
 };
 using CFGNodePtrSet = std::unordered_set<CFGNode *>;
 ```
+
 2. 入口
+
 對於當前的scc的每個節點，如果有不屬於該scc的就是根節點
 ```cpp
 for (auto n : *set)
@@ -30,9 +33,13 @@ for (auto n : *set)
         if (set->find(prev) == set->end())
             base = n;
 ```
+
 3. 嵌套
+
 使用 reserved 集合，加入外層已經訪問過的循環入口，並在它的前驅和後繼中刪除自己
+
 4. 代码
+
 ```cpp
 reserved.insert(base);
 nodes.erase(base);
@@ -68,7 +75,7 @@ for (auto dom_succ_bb : dominators_->get_dom_tree_succ_blocks(bb))
 
 ### 代码阅读总结
 
-此次实验有什么收获
+初步了解pass实现
 
 ### 实验反馈 （可选 不会评分）
 
