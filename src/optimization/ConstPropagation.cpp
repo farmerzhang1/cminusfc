@@ -1,5 +1,6 @@
 #include "ConstPropagation.hpp"
 #include "logging.hpp"
+#include <iostream>
 
 // 给出了返回整形值的常数折叠实现，大家可以参考，在此基础上拓展
 // 当然如果同学们有更好的方式，不强求使用下面这种方式
@@ -8,14 +9,12 @@ ConstantInt *ConstFolder::compute(
     ConstantInt *value1,
     ConstantInt *value2)
 {
-
     int c_value1 = value1->get_value();
     int c_value2 = value2->get_value();
     switch (op)
     {
     case Instruction::add:
         return ConstantInt::get(c_value1 + c_value2, module_);
-
         break;
     case Instruction::sub:
         return ConstantInt::get(c_value1 - c_value2, module_);
@@ -60,5 +59,31 @@ ConstantInt *cast_constantint(Value *value)
 
 void ConstPropagation::run()
 {
-    // 从这里开始吧！
+    ConstFolder cf(this->m_);
+    std::vector<Instruction *> delete_list;
+    for (auto f : this->m_->get_functions())
+    {
+        for (auto bb : f->get_basic_blocks())
+        {
+            for (auto instr : bb->get_instructions())
+            {
+                auto iadd = dynamic_cast<BinaryInst *>(instr);
+
+                if (iadd)
+                {
+                    auto lval = cast_constantint(iadd->get_operand(0));
+                    auto rval = cast_constantint(iadd->get_operand(1));
+                    if (lval && rval)
+                    {
+                        // std::cout << iadd->print() << std::endl;
+                        iadd->replace_all_use_with(cf.compute(iadd->get_instr_type(), lval, rval)); // let's see what this does
+                        // bb->delete_instr(iadd);
+                        delete_list.push_back(iadd);
+                    }
+                }
+            }
+            for (auto instr : delete_list)
+                bb->delete_instr(instr);
+        }
+    }
 }
