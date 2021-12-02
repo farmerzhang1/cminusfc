@@ -188,7 +188,7 @@ make install
 * 活跃变量 pass 测试将与答案 json 文件脚本对比，得分计算规则见下面评分标准
 ```sh
 # 在 tests/4-ir-opt 目录下运行：
-./lab4_test.py -L
+./lab4_tests.py -L
 ```
 如果完全正确，它会输出：
 ```
@@ -272,7 +272,7 @@ testcase-8              1.98                    0.25              0.25
     ├── ...
     └── 4-ir-opt
         ├── testcases                   <- 助教提供的测试样例
-        └── lab4_test.py                <- 助教提供的测试脚本
+        └── lab4_tests.py                <- 助教提供的测试脚本
 
 ```
 ### 提交要求和评分标准
