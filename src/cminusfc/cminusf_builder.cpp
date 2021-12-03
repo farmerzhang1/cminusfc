@@ -1,220 +1,6 @@
 #include "cminusf_builder.hpp"
+#include "utils.hpp"
 #include <algorithm>
-
-// TA: 呃呃鹅鹅鹅
-
-// me: 真对不起大家
-Value *val = nullptr;
-bool address_only = false;        // dealing with pointers
-bool return_in_branch = false;    // 用在 selection statement 判断分支语句中是否有返回，如果有则不跳转到 out 中
-bool in_branch = false;           // 当前 builder 处于分支语句中，主要用在 return statement 判断该 store 还是 load
-bool pre_returns = false;         // 在之前的语句中有 return, 创建一个基本块用来返回
-bool enter_in_fun_decl = false;   // need to push function parameters and return value into the scope
-const std::string return_val{""}; // set to empty string to avoid conflicts, load it when need to return (at the end of a function)
-CminusType return_type;
-size_t bb_counter{0};
-
-#define both_int(lhs, rhs) (lhs->get_type()->is_integer_type() && rhs->get_type()->is_integer_type())
-
-#define CONST_FP(num) \
-    ConstantFP::get((float)num, module.get())
-#define CONST_INT(num) \
-    ConstantInt::get(num, module.get())
-
-#define add_int_map(op, l, r)                 \
-    do                                        \
-    {                                         \
-        switch ((op))                         \
-        {                                     \
-        case AddOp::OP_PLUS:                  \
-        {                                     \
-            val = builder->create_iadd(l, r); \
-            break;                            \
-        }                                     \
-        case AddOp::OP_MINUS:                 \
-        {                                     \
-            val = builder->create_isub(l, r); \
-            break;                            \
-        };                                    \
-        }                                     \
-    } while (false);
-// std::map<AddOp, std::function<BinaryInst *(Value *, Value *)>> add_int_map = {
-//     {AddOp::OP_PLUS, [this](Value *l, Value *r)
-//      { return builder->create_iadd(l, r); }},
-//     {AddOp::OP_MINUS, [this](Value *l, Value *r)
-//      { return builder->create_isub(l, r); }}};
-#define add_float_map(op, l, r)               \
-    do                                        \
-    {                                         \
-        switch ((op))                         \
-        {                                     \
-        case AddOp::OP_PLUS:                  \
-        {                                     \
-            val = builder->create_fadd(l, r); \
-            break;                            \
-        }                                     \
-        case AddOp::OP_MINUS:                 \
-        {                                     \
-            val = builder->create_fsub(l, r); \
-            break;                            \
-        };                                    \
-        }                                     \
-    } while (false);
-// std::map<AddOp, std::function<BinaryInst *(Value *, Value *)>> add_float_map = {
-//     {AddOp::OP_PLUS, [this](Value *l, Value *r)
-//      { return builder->create_fadd(l, r); }},
-//     {AddOp::OP_MINUS, [this](Value *l, Value *r)
-//      { return builder->create_fsub(l, r); }}};
-#define mul_int_map(op, l, r)                  \
-    do                                         \
-    {                                          \
-        switch ((op))                          \
-        {                                      \
-        case MulOp::OP_MUL:                    \
-        {                                      \
-            val = builder->create_imul(l, r);  \
-            break;                             \
-        }                                      \
-        case MulOp::OP_DIV:                    \
-        {                                      \
-            val = builder->create_isdiv(l, r); \
-            break;                             \
-        };                                     \
-        }                                      \
-    } while (false);
-// std::map<MulOp, std::function<BinaryInst *(Value *, Value *)>> mul_int_map = {
-//     {MulOp::OP_MUL, [this](Value *l, Value *r)
-//      { return builder->create_imul(l, r); }},
-//     {MulOp::OP_DIV, [this](Value *l, Value *r)
-//      { return builder->create_isdiv(l, r); }}};
-#define mul_float_map(op, l, r)               \
-    do                                        \
-    {                                         \
-        switch ((op))                         \
-        {                                     \
-        case MulOp::OP_MUL:                   \
-        {                                     \
-            val = builder->create_fmul(l, r); \
-            break;                            \
-        }                                     \
-        case MulOp::OP_DIV:                   \
-        {                                     \
-            val = builder->create_fdiv(l, r); \
-            break;                            \
-        }                                     \
-        }                                     \
-    } while (false);
-// std::map<MulOp, std::function<BinaryInst *(Value *, Value *)>> mul_float_map = {
-//     {MulOp::OP_MUL, [this](Value *l, Value *r)
-//      { return builder->create_fmul(l, r); }},
-//     {MulOp::OP_DIV, [this](Value *l, Value *r)
-//      { return builder->create_fdiv(l, r); }}};
-#define comp_int_map(op, l, r)                   \
-    do                                           \
-    {                                            \
-        switch ((op))                            \
-        {                                        \
-        case RelOp::OP_EQ:                       \
-        {                                        \
-            val = builder->create_icmp_eq(l, r); \
-            break;                               \
-        }                                        \
-        case RelOp::OP_NEQ:                      \
-        {                                        \
-            val = builder->create_icmp_ne(l, r); \
-            break;                               \
-        }                                        \
-        case RelOp::OP_GE:                       \
-        {                                        \
-            val = builder->create_icmp_ge(l, r); \
-            break;                               \
-        }                                        \
-        case RelOp::OP_GT:                       \
-        {                                        \
-            val = builder->create_icmp_gt(l, r); \
-            break;                               \
-        }                                        \
-        case RelOp::OP_LE:                       \
-        {                                        \
-            val = builder->create_icmp_le(l, r); \
-            break;                               \
-        }                                        \
-        case RelOp::OP_LT:                       \
-        {                                        \
-            val = builder->create_icmp_lt(l, r); \
-            break;                               \
-        }                                        \
-        }                                        \
-    } while (false);
-// std::map<RelOp, std::function<CmpInst *(Value *, Value *)>> comp_int_map = {
-//     {RelOp::OP_EQ, [this](Value *l, Value *r)
-//      { return builder->create_icmp_eq(l, r); }},
-//     {RelOp::OP_NEQ, [this](Value *l, Value *r)
-//      { return builder->create_icmp_ne(l, r); }},
-//     {RelOp::OP_GE, [this](Value *l, Value *r)
-//      { return builder->create_icmp_ge(l, r); }},
-//     {RelOp::OP_GT, [this](Value *l, Value *r)
-//      { return builder->create_icmp_gt(l, r); }},
-//     {RelOp::OP_LE, [this](Value *l, Value *r)
-//      { return builder->create_icmp_le(l, r); }},
-//     {RelOp::OP_LT, [this](Value *l, Value *r)
-//      { return builder->create_icmp_lt(l, r); }}};
-#define comp_float_map(op, l, r)                 \
-    do                                           \
-    {                                            \
-        switch ((op))                            \
-        {                                        \
-        case RelOp::OP_EQ:                       \
-        {                                        \
-            val = builder->create_fcmp_eq(l, r); \
-            break;                               \
-        }                                        \
-        case RelOp::OP_NEQ:                      \
-        {                                        \
-            val = builder->create_fcmp_ne(l, r); \
-            break;                               \
-        };                                       \
-        case RelOp::OP_GE:                       \
-        {                                        \
-            val = builder->create_fcmp_ge(l, r); \
-            break;                               \
-        }                                        \
-        case RelOp::OP_GT:                       \
-        {                                        \
-            val = builder->create_fcmp_gt(l, r); \
-            break;                               \
-        }                                        \
-        case RelOp::OP_LE:                       \
-        {                                        \
-            val = builder->create_fcmp_le(l, r); \
-            break;                               \
-        }                                        \
-        case RelOp::OP_LT:                       \
-        {                                        \
-            val = builder->create_fcmp_lt(l, r); \
-            break;                               \
-        }                                        \
-        }                                        \
-    } while (false);
-// std::map<RelOp, std::function<FCmpInst *(Value *, Value *)>> comp_float_map = {
-//     {RelOp::OP_EQ, [this](Value *l, Value *r)
-//      { return builder->create_fcmp_eq(l, r); }},
-//     {RelOp::OP_NEQ, [this](Value *l, Value *r)
-//      { return builder->create_fcmp_ne(l, r); }},
-//     {RelOp::OP_GE, [this](Value *l, Value *r)
-//      { return builder->create_fcmp_ge(l, r); }},
-//     {RelOp::OP_GT, [this](Value *l, Value *r)
-//      { return builder->create_fcmp_gt(l, r); }},
-//     {RelOp::OP_LE, [this](Value *l, Value *r)
-//      { return builder->create_fcmp_le(l, r); }},
-//     {RelOp::OP_LT, [this](Value *l, Value *r)
-//      { return builder->create_fcmp_lt(l, r); }}};
-#define type(t) (t == CminusType::TYPE_FLOAT ? (module->get_float_type()) : (t == CminusType::TYPE_INT ? (module->get_int32_type()) : module->get_void_type()))
-
-#define convert(n, to) ((n->get_type()->get_type_id() == to->get_type_id() && (n->get_type()->is_integer_type() || n->get_type()->is_float_type())) ? ((n->get_type()->get_size() < to->get_size()) ? (builder->create_zext(n, to)) : (n))                                                                                                                                                                                                                                                     \
-                                                                                                                                                    : ((n->get_type()->is_integer_type() && to->is_float_type()) ? builder->create_sitofp(n, to) : ((n->get_type()->is_float_type() && to->is_integer_type()) ? builder->create_fptosi(n, to) : ((n->get_type()->get_pointer_element_type()->is_array_type() && to->is_pointer_type())) ? ((Value*)builder->create_gep(n, {CONST_INT(0), CONST_INT(0)})) \
-                                                                                                                                                                                                                                                                                                                                            : (n->get_type()->get_pointer_element_type()->is_pointer_type() && to->is_pointer_type())   ? builder->create_load(n)                              \
-                                                                                                                                                                                                                                                                                                                                                                                                                                        : nullptr)))
 
 void CminusfBuilder::visit(ASTProgram &node)
 {
@@ -240,7 +26,7 @@ void CminusfBuilder::visit(ASTNum &node)
 void CminusfBuilder::visit(ASTVarDeclaration &node)
 {
     Type *t;
-    t = type(node.type);
+    t = type(node.type); // utility
     if (node.num)
         t = module->get_array_type(t, node.num->i_val);
 
@@ -269,7 +55,7 @@ void CminusfBuilder::visit(ASTFunDeclaration &node)
     auto bb = BasicBlock::create(module.get(), "entry", f);
     builder->set_insert_point(bb);
     scope.enter();
-    enter_in_fun_decl = true;
+    this->enter_in_fun_decl = true;
     for (auto &arg : f->get_args())
     {
         arg->set_name(node.params[i]->id);
@@ -281,8 +67,6 @@ void CminusfBuilder::visit(ASTFunDeclaration &node)
     return_type = node.type;
     if (node.type != CminusType::TYPE_VOID)
     {
-        // TODO: don't create return_val when there is only one return statement
-        // incooperate it with parser (count return when parsing) (don't know what clang does)
         val = builder->create_alloca(type(return_type));
         scope.push(return_val, val);
     }
@@ -292,7 +76,6 @@ void CminusfBuilder::visit(ASTFunDeclaration &node)
         auto ret = std::make_unique<ASTReturnStmt>();
         ret->accept(*this);
     }
-    pre_returns = false;
 }
 
 void CminusfBuilder::visit(ASTParam &node)
@@ -332,15 +115,11 @@ void CminusfBuilder::visit(ASTSelectionStmt &node)
     if (val->get_type()->get_size() > 1)
     {
         if (val->get_type()->is_integer_type())
-        {
-            comp_int_map(RelOp::OP_NEQ, val, CONST_INT(0));
-        }
+            val = comp_int_map[RelOp::OP_NEQ](val, CONST_INT(0));
         else
-        {
-            comp_float_map(RelOp::OP_NEQ, val, CONST_FP(0));
-        }
+            val = comp_float_map[RelOp::OP_NEQ](val, CONST_FP(0));
     }
-    in_branch = true;
+    this->in_branch = true;
     auto current_func = builder->get_insert_block()->get_parent();
     auto trueBB = BasicBlock::create(module.get(),
                                      "true" + std::to_string(bb_counter++),
@@ -412,13 +191,9 @@ void CminusfBuilder::visit(ASTIterationStmt &node)
     if (val->get_type()->get_size() > 1)
     {
         if (val->get_type()->is_integer_type())
-        {
-            comp_int_map(RelOp::OP_NEQ, val, CONST_INT(0));
-        }
+            val = comp_int_map[RelOp::OP_NEQ](val, CONST_INT(0));
         else
-        {
-            comp_float_map(RelOp::OP_NEQ, val, CONST_FP(0));
-        }
+            val = comp_float_map[RelOp::OP_NEQ](val, CONST_FP(0));
     }
     builder->create_cond_br(val, body, out);
     builder->set_insert_point(body);
@@ -437,8 +212,7 @@ void CminusfBuilder::visit(ASTReturnStmt &node)
         if (in_branch)
         {
             Value *ptr = scope.find(return_val);
-            Type *aaa = type(t);
-            builder->create_store(convert(val, aaa), ptr);
+            builder->create_store(convert(val, type(t)), ptr);
             return_in_branch = true;
             pre_returns = true;
         }
@@ -507,12 +281,12 @@ void CminusfBuilder::visit(ASTVar &node)
         node.expression->accept(*this);
         address_only = temp;
         Value *offset = convert(val, module->get_int32_type());
-        comp_int_map(RelOp::OP_GE, offset, CONST_INT(0));
+        Value *nonnegative = comp_int_map[RelOp::OP_GE](offset, CONST_INT(0));
         auto t = BasicBlock::create(module.get(), "true" + std::to_string(bb_counter++), builder->get_insert_block()->get_parent());
         auto f = BasicBlock::create(module.get(), "false" + std::to_string(bb_counter++), builder->get_insert_block()->get_parent());
-        builder->create_cond_br(val, t, f);
+        builder->create_cond_br(nonnegative, t, f);
         builder->set_insert_point(f);
-        builder->create_call(scope.find("neg_idx_except"), {});
+        builder->create_call(scope.get_global("neg_idx_except"), {});
         builder->create_br(t);
         builder->set_insert_point(t);
         if (ptr->get_type()->get_pointer_element_type()->is_array_type())
@@ -525,7 +299,7 @@ void CminusfBuilder::visit(ASTVar &node)
             ptr = builder->create_gep(ptr, {offset});
         }
     }
-    val = address_only ? ptr : builder->create_load(ptr);
+    val = this->address_only ? ptr : builder->create_load(ptr);
 }
 
 void CminusfBuilder::visit(ASTAssignExpression &node)
@@ -551,13 +325,13 @@ void CminusfBuilder::visit(ASTSimpleExpression &node)
         {
             lhs = convert(lhs, module->get_int32_type()); // convert to i32 if it's i1
             rhs = convert(rhs, module->get_int32_type());
-            comp_int_map(node.op, lhs, rhs);
+            val = comp_int_map[node.op](lhs, rhs);
         }
         else // at least one is float
         {
             lhs = convert(lhs, module->get_float_type()); // convert to float, return it directly if is float already
             rhs = convert(rhs, module->get_float_type());
-            comp_float_map(node.op, lhs, rhs);
+            val = comp_float_map[node.op](lhs, rhs);
         }
     }
 }
@@ -578,13 +352,13 @@ void CminusfBuilder::visit(ASTAdditiveExpression &node)
         {
             lhs = convert(lhs, module->get_int32_type());
             rhs = convert(rhs, module->get_int32_type());
-            add_int_map(node.op, lhs, rhs);
+            val = add_int_map[node.op](lhs, rhs);
         }
         else
         {
             lhs = convert(lhs, module->get_float_type());
             rhs = convert(rhs, module->get_float_type());
-            add_float_map(node.op, lhs, rhs);
+            val = add_float_map[node.op](lhs, rhs);
         }
     }
 }
@@ -605,20 +379,20 @@ void CminusfBuilder::visit(ASTTerm &node)
         {
             lhs = convert(lhs, module->get_int32_type());
             rhs = convert(rhs, module->get_int32_type());
-            mul_int_map(node.op, lhs, rhs);
+            val = mul_int_map[node.op](lhs, rhs);
         }
         else
         {
             lhs = convert(lhs, module->get_float_type());
             rhs = convert(rhs, module->get_float_type());
-            mul_float_map(node.op, lhs, rhs);
+            val = mul_float_map[node.op](lhs, rhs);
         }
     }
 }
 
 void CminusfBuilder::visit(ASTCall &node)
 {
-    auto func = static_cast<Function *>(scope.find(node.id));
+    auto func = static_cast<Function *>(scope.get_global(node.id));
     std::vector<Value *> args;
     size_t i = 0;
     std::transform(node.args.begin(), node.args.end(), std::back_inserter(args), [this, &i, func](auto &e)
@@ -626,9 +400,7 @@ void CminusfBuilder::visit(ASTCall &node)
                        address_only = func->get_function_type()->get_param_type(i)->is_pointer_type();
                        e->accept(*this);
                        address_only = false;
-                       auto ret = convert(val, func->get_function_type()->get_param_type(i));
-                       i++;
-                       return ret;
+                       return convert(val, func->get_function_type()->get_param_type(i++));
                    });
     val = builder->create_call(func, std::move(args));
 }
