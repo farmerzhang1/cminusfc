@@ -14,15 +14,17 @@
 #include <queue>
 #include <fstream>
 
-class ActiveVars : public Pass
-{
+class ActiveVars : public Pass {
 public:
     ActiveVars(Module *m) : Pass(m) {}
     void run();
+    void calc_def_and_use();
     std::string print();
+
 private:
     Function *func_;
-    std::map<BasicBlock *, std::set<Value *>> live_in, live_out;
+    std::map<BasicBlock *, std::set<Value *>> live_in, live_out, def, use;
+    std::map<BasicBlock *, std::map<BasicBlock *, std::set<Value *>>> phiuses; // don't know which identifier to use
 };
 
 #endif
