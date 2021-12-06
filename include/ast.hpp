@@ -158,17 +158,16 @@ struct ASTProgram : ASTNode
     bool is_num() override final { return false; }
 };
 
-struct ASTDeclaration : ASTNode
-{
+struct ASTDeclaration: ASTNode {
+    virtual ~ASTDeclaration() = default;
     CminusType type;
     std::string id; // 这里是数字 int or float
-    virtual ~ASTDeclaration() {}
     bool is_num() override final { return false; }
 };
 
 struct ASTFactor : ASTNode
 {
-    virtual ~ASTFactor() {}
+    virtual ~ASTFactor() = default;
     bool is_num() override;
 };
 
@@ -209,7 +208,7 @@ struct ASTParam : ASTNode
 
 struct ASTStatement : ASTNode
 {
-    virtual ~ASTStatement() {}
+    virtual ~ASTStatement() = default;
     bool is_num() override final { return false; }
 };
 
