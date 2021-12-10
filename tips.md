@@ -22,3 +22,12 @@ opt <your passes> <source.ll> -S -o <output-file>
 clang -S -emit-llvm -O -Xclang -disable-llvm-passes test.c
 opt -mem2reg -sccp test.ll -S -o result.ll
 ```
+## RV64
+终于！
+```
+riscv64-linux-gnu-gcc -c -o io.o io.c
+build/cmi ...
+llc -march=riscv64 test.ll
+riscv64-linux-gnu-gcc test.s io.o -o test
+qemu-riscv64  -L /usr/riscv64-linux-gnu/ ./test
+```
