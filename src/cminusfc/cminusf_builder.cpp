@@ -119,7 +119,6 @@ void CminusfBuilder::visit(ASTSelectionStmt &node)
         else
             val = comp_float_map[RelOp::OP_NEQ](val, CONST_FP(0));
     }
-    this->in_branch = true;
     auto current_func = builder->get_insert_block()->get_parent();
     auto trueBB = BasicBlock::create(module.get(),
                                      "true" + std::to_string(bb_counter++),
@@ -197,8 +196,10 @@ void CminusfBuilder::visit(ASTIterationStmt &node)
     }
     builder->create_cond_br(val, body, out);
     builder->set_insert_point(body);
+    in_branch = true;
     node.statement->accept(*this);
-    builder->create_br(predicate);
+    in_branch = false;
+    if (!return_in_branch) builder->create_br(predicate);
     builder->set_insert_point(out);
 }
 
