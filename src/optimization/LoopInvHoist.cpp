@@ -22,9 +22,10 @@ void LoopInvHoist::run() {
 }
 
 bool LoopInvHoist::inv_in_loop(Instruction *instr, BBset_t *loop) {
-    bool is_invariant = true;
     Instruction *temp;
-
+    if (instr->is_call())   return false;
+    if (instr->is_ret())    return false;
+    if (instr->is_br())     return false;
     for (auto rand : instr->get_operands()) {
         if ((temp = dynamic_cast<Instruction *>(rand))) {
             if (!loop->contains(temp->get_parent())
@@ -33,10 +34,9 @@ bool LoopInvHoist::inv_in_loop(Instruction *instr, BBset_t *loop) {
             else
                 return false;
         }
-        if (rand->get_type()->is_label_type()) return false;
     }
-    if (is_invariant) invariants.insert(instr);
-    return is_invariant;
+    invariants.insert(instr);
+    return true;
 }
 
 void LoopInvHoist::moveout(BBset_t *loop) {

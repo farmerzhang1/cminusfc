@@ -11,7 +11,7 @@
 
 class LoopInvHoist : public Pass {
 public:
-    LoopInvHoist(Module *m) : Pass(m), loop_searcher(m_, true) {}
+    LoopInvHoist(Module *m) : Pass(m), loop_searcher(m_, false) {}
     bool inv_in_loop(Instruction*, BBset_t*);
     void run() override;
     void moveout (BBset_t*);
