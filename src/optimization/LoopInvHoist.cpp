@@ -26,6 +26,7 @@ bool LoopInvHoist::inv_in_loop(Instruction *instr, BBset_t *loop) {
     if (instr->is_call())   return false;
     if (instr->is_ret())    return false;
     if (instr->is_br())     return false;
+    if (instr->is_phi())    return false;
     for (auto rand : instr->get_operands()) {
         if ((temp = dynamic_cast<Instruction *>(rand))) {
             if (!loop->contains(temp->get_parent())
