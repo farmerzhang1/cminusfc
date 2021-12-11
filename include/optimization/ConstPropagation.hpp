@@ -22,10 +22,16 @@ class ConstFolder
 {
 public:
     ConstFolder(Module *m) : module_(m) {}
-    ConstantInt *compute(
+    ConstantInt *compute_i(
         Instruction::OpID op,
         ConstantInt *value1,
         ConstantInt *value2);
+    ConstantFP *compute_f(
+        Instruction::OpID op,
+        ConstantFP *value1,
+        ConstantFP *value2);
+    ConstantInt *f_to_i(ConstantFP *value);
+    ConstantFP *i_to_f(ConstantInt *value);
     // ...
 private:
     Module *module_;
