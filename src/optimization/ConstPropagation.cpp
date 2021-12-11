@@ -64,6 +64,68 @@ ConstantFP *ConstFolder::i_to_f(ConstantInt *value) {
     return ConstantFP::get(ans, module_);
 }
 
+ConstantInt *ConstFolder::compare(
+    CmpInst::CmpOp op,
+    ConstantInt *value1,
+    ConstantInt *value2) {
+    int c_value1 = value1->get_value();
+    int c_value2 = value2->get_value();
+    switch (op) {
+    case CmpInst::EQ:
+        return ConstantInt::get((c_value1 == c_value2), module_);
+        break;
+    case CmpInst::NE:
+        return ConstantInt::get((c_value1 != c_value2), module_);
+        break;
+    case CmpInst::GT:
+        return ConstantInt::get((c_value1 > c_value2), module_);
+        break;
+    case CmpInst::GE:
+        return ConstantInt::get((c_value1 >= c_value2), module_);
+        break;
+    case CmpInst::LT:
+        return ConstantInt::get((c_value1 < c_value2), module_);
+        break;
+    case CmpInst::LE:
+        return ConstantInt::get((c_value1 <= c_value2), module_);
+        break;
+    default:
+        return nullptr;
+        break;
+    }
+}
+
+ConstantInt *ConstFolder::compare(
+    FCmpInst::CmpOp op,
+    ConstantFP *value1,
+    ConstantFP *value2) {
+    float c_value1 = value1->get_value();
+    float c_value2 = value2->get_value();
+    switch (op) {
+    case FCmpInst::EQ:
+        return ConstantInt::get((c_value1 == c_value2), module_);
+        break;
+    case FCmpInst::NE:
+        return ConstantInt::get((c_value1 != c_value2), module_);
+        break;
+    case FCmpInst::GT:
+        return ConstantInt::get((c_value1 > c_value2), module_);
+        break;
+    case FCmpInst::GE:
+        return ConstantInt::get((c_value1 >= c_value2), module_);
+        break;
+    case FCmpInst::LT:
+        return ConstantInt::get((c_value1 < c_value2), module_);
+        break;
+    case FCmpInst::LE:
+        return ConstantInt::get((c_value1 <= c_value2), module_);
+        break;
+    default:
+        return nullptr;
+        break;
+    }
+}
+
 // 用来判断value是否为ConstantFP，如果不是则会返回nullptr
 ConstantFP *cast_constantfp(Value *value) {
     auto constant_fp_ptr = dynamic_cast<ConstantFP *>(value);
@@ -129,18 +191,44 @@ void ConstPropagation::run() {
                         }
                     }
                 } else if (instr->get_instr_type() == Instruction::OpID::cmp) {
-                    //the cmp code need to be simplified , but the testcases don't include these situations.
                     auto instr_type = dynamic_cast<CmpInst *>(instr);
+                    if (instr_type) {
+                        auto i_lhs = cast_constantint(instr_type->get_operand(0));
+                        auto i_rhs = cast_constantint(instr_type->get_operand(1));
+                        if (i_lhs && i_rhs) {
+                            instr_type->replace_all_use_with(cf.compare(instr_type->get_cmp_op(), i_lhs, i_rhs));
+                            delete_list.push_back(instr_type);
+                        }
+                    }
                 } else if (instr->get_instr_type() == Instruction::OpID::fcmp) {
                     auto instr_type = dynamic_cast<FCmpInst *>(instr);
+                    if (instr_type) {
+                        auto f_lhs = cast_constantfp(instr_type->get_operand(0));
+                        auto f_rhs = cast_constantfp(instr_type->get_operand(1));
+                        if (f_lhs && f_rhs) {
+                            instr_type->replace_all_use_with(cf.compare(instr_type->get_cmp_op(), f_lhs, f_rhs));
+                            delete_list.push_back(instr_type);
+                        }
+                    }
                 } else if (instr->get_instr_type() == Instruction::OpID::call) {
                     auto instr_type = dynamic_cast<CallInst *>(instr);
+                } else if (instr->get_instr_type() == Instruction::OpID::store) {
+                    auto instr_type = dynamic_cast<StoreInst *>(instr);
+                    cf.map_[dynamic_cast<GlobalVariable *>(instr_type->get_lval())] = instr_type->get_rval();
+                } else if (instr->get_instr_type() == Instruction::OpID::load) {
+                    auto instr_type = dynamic_cast<LoadInst *>(instr);
+                    auto iter = cf.map_.find(dynamic_cast<GlobalVariable *>(instr_type->get_lval()));
+                    if (iter != cf.map_.end()) {
+                        instr_type->replace_all_use_with(iter->second);
+                        delete_list.push_back(instr_type);
+                    }
                 }
-                if (instr->get_use_list().empty())//FIXME this two line of code are wrong, maybe just my mistakes.
-                    delete_list.push_back(instr);
+                // if (instr->get_use_list().empty())
+                // delete_list.push_back(instr);
             }
             for (auto instr : delete_list)
                 bb->delete_instr(instr);
+            cf.map_.clear();
         }
     }
 }

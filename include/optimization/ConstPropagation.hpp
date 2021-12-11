@@ -21,7 +21,11 @@ ConstantInt* cast_constantint(Value *value);
 class ConstFolder
 {
 public:
-    ConstFolder(Module *m) : module_(m) {}
+    ConstFolder(Module *m) : module_(m) {
+        for (auto global : module_->get_global_variable()) {
+            map_[global] = global->get_init();
+        }
+    }
     ConstantInt *compute_i(
         Instruction::OpID op,
         ConstantInt *value1,
@@ -32,9 +36,19 @@ public:
         ConstantFP *value2);
     ConstantInt *f_to_i(ConstantFP *value);
     ConstantFP *i_to_f(ConstantInt *value);
+    ConstantInt *compare(
+        CmpInst::CmpOp op,
+        ConstantInt *value1,
+        ConstantInt *value2);
+    ConstantInt *compare(
+        FCmpInst::CmpOp op,
+        ConstantFP *value1,
+        ConstantFP *value2);
+    std::map<GlobalVariable*, Value*> map_;
     // ...
 private:
     Module *module_;
+
 };
 
 class ConstPropagation : public Pass
