@@ -56,7 +56,9 @@ struct CalcASTInput: CalcASTNode {
     std::shared_ptr<CalcASTExpression> expression;
 };
 
-struct CalcASTFactor: CalcASTNode { };
+struct CalcASTFactor: CalcASTNode {
+    virtual ~CalcASTFactor() = default;
+};
 
 struct CalcASTNum: CalcASTFactor {
     virtual void accept(CalcASTVisitor &) override final;
