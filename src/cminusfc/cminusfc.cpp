@@ -117,7 +117,8 @@ int main(int argc, char **argv) {
         PM.add_pass<LoopInvHoist>();
     }
     PM.run();
-
+    if (!mem2reg && (loop_search || const_propagation || activevars || loop_inv_hoist))
+        std::cout << "warning: did not turn on mem2reg" << std::endl;
     auto IR = m->print();
 
     std::ofstream output_stream;
