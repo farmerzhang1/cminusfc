@@ -29,8 +29,8 @@ bool LoopInvHoist::inv_in_loop(Instruction *instr, BBset_t *loop) {
     if (instr->is_phi())    return false;
     for (auto rand : instr->get_operands()) {
         if ((temp = dynamic_cast<Instruction *>(rand))) {
-            if (!loop->contains(temp->get_parent())
-                || invariants.contains(temp))
+            if (!(loop->find(temp->get_parent()) != loop->end())
+                || invariants.find(temp) != invariants.end())
                 ;
             else
                 return false;
@@ -45,7 +45,7 @@ void LoopInvHoist::moveout(BBset_t *loop) {
     BasicBlock *pred_pre = nullptr; // predecessor of the predicate
     std::cout << "loop base: " << base->get_name() << std::endl;
     for (auto prev : base->get_pre_basic_blocks())
-        if (!loop->contains(prev)) pred_pre = prev;
+        if (!(loop->find(prev) != loop->end())) pred_pre = prev;
     auto last = pred_pre->get_instructions().back();
     pred_pre->delete_instr(last); // delete the last instruction (which is branch), append all the invariants, then add the branch back
     for (auto inv : invariants) {

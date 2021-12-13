@@ -23,16 +23,14 @@ void ActiveVars::run() {
                     auto &in = live_in[*itr];
                     auto &out = live_out[*itr];
                     auto size_before = out.size();
-                    // live_out[*itr].clear();
                     for (auto suc : (*itr)->get_succ_basic_blocks()) {
                         for (auto var : live_in[suc]) {
                             bool var_from_phi = false;
-                            for (auto [_, vars] : phiuses[suc]) var_from_phi |= vars.contains(var);
-                            if (!var_from_phi || var_from_phi && phiuses[suc][*itr].contains(var)) {
+                            for (auto [_, vars] : phiuses[suc]) var_from_phi |= (vars.find(var) != vars.end());// vars.contains(var);
+                            if (!var_from_phi || var_from_phi && (phiuses[suc][*itr].find(var) != phiuses[suc][*itr].end())) {
                                 out.insert(var);
                             }
                         }
-                        // out.merge(live_in[suc]);
                     }
                     changed |= out.size() != size_before;
                     in = out;
@@ -107,9 +105,9 @@ void ActiveVars::calc_def_and_use() {
         auto &defs = def[bb];
         for (auto instr : bb->get_instructions()) {
             // how to distinguish between constants and variables? (get_name.empty)
-            // FIXME: handle phi (here?)
+            // TODO: don't use map of map (too big!)
             for (auto rand : instr->get_operands()) {
-                if (!defs.contains(rand) && !rand->get_name().empty() && !rand->get_type()->is_label_type())
+                if (!(defs.find(rand) != defs.end()) && !rand->get_name().empty() && !rand->get_type()->is_label_type())
                     uses.insert(rand);
             }
             if (instr->is_phi()) {
@@ -120,12 +118,12 @@ void ActiveVars::calc_def_and_use() {
                 }
             }
             if (instr->is_call()) uses.erase(instr->get_operand(0)); // delete first operand (pointer to function)
-            if (!uses.contains(instr) && !instr->get_type()->is_void_type())
+            if (!(uses.find(instr) != uses.end()) && !instr->get_type()->is_void_type())
                 defs.insert(instr);
         }
-        std::cout << "use list for " << bb->get_name() << std::endl;
-        for (auto u : uses) std::cout << u->get_name() << std::endl;
-        std::cout << "and def list" << std::endl;
-        for (auto d : defs) std::cout << d->print() << std::endl;
+        // std::cout << "use list for " << bb->get_name() << std::endl;
+        // for (auto u : uses) std::cout << u->get_name() << std::endl;
+        // std::cout << "and def list" << std::endl;
+        // for (auto d : defs) std::cout << d->print() << std::endl;
     }
 }
