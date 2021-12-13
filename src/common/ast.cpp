@@ -2,6 +2,8 @@
 #include <cstring>
 #include <stack>
 #include <iostream>
+// don't do constant propagation when parsing (for testing the effectiveness of Opt)
+#define NO_CP_WHEN_PARSING
 #define _AST_NODE_ERROR_                                   \
     std::cerr << "Abort due to node cast error."           \
                  "Contact with TAs to solve your problem." \
@@ -247,12 +249,13 @@ AST::transform_node_iter(syntax_tree_node *n)
             auto else_stmt_node_ptr = std::shared_ptr<ASTStatement>(else_stmt_node);
             node->else_statement = else_stmt_node_ptr;
         }
+#ifndef NO_CP_WHEN_PARSING
         if (expr_node->is_num())
         {
             // TODO: 又得把expr_node转化以下，然后还得再把factor cast成num，好麻烦啊
             // TODO: auto return type 是干嘛的？
         }
-
+#endif
         return node;
     }
     else if (_STR_EQ(n->name, "iteration-stmt"))
@@ -332,6 +335,7 @@ AST::transform_node_iter(syntax_tree_node *n)
 
             auto expr_node_2 = static_cast<ASTAdditiveExpression *>(transform_node_iter(n->children[2]));
             node->additive_expression_r = std::shared_ptr<ASTAdditiveExpression>(expr_node_2);
+#ifndef NO_CP_WHEN_PARSING
             if (expr_node_1->is_num() && expr_node_2->is_num())
             {
                 auto num1 = static_cast<ASTNum *>(expr_node_1->term->factor.get());
@@ -349,6 +353,7 @@ AST::transform_node_iter(syntax_tree_node *n)
                 additive->term = term;
                 term->factor = num;
             }
+#endif
         }
         return node;
     }
@@ -368,6 +373,7 @@ AST::transform_node_iter(syntax_tree_node *n)
 
             auto term_node = static_cast<ASTTerm *>(transform_node_iter(n->children[2]));
             node->term = std::shared_ptr<ASTTerm>(term_node);
+#ifndef NO_CP_WHEN_PARSING
             if (add_expr_node->is_num() && term_node->is_num())
             {
                 auto num1 = static_cast<ASTNum *>(add_expr_node->term->factor.get());
@@ -389,6 +395,7 @@ AST::transform_node_iter(syntax_tree_node *n)
                 node->term = term;
                 node->additive_expression = nullptr;
             }
+#endif
         }
         else
         {
@@ -413,6 +420,7 @@ AST::transform_node_iter(syntax_tree_node *n)
 
             auto factor_node = static_cast<ASTFactor *>(transform_node_iter(n->children[2]));
             node->factor = std::shared_ptr<ASTFactor>(factor_node);
+#ifndef NO_CP_WHEN_PARSING
             if (term_node->is_num() && factor_node->is_num()) // term_node can be reduced to one number
             {
                 auto num1 = static_cast<ASTNum *>(term_node->factor.get());
@@ -431,6 +439,7 @@ AST::transform_node_iter(syntax_tree_node *n)
                 node->factor = num;
                 node->term = nullptr;
             }
+#endif
         }
         else
         {

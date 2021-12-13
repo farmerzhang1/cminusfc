@@ -22,3 +22,5 @@ opt <your passes> <source.ll> -S -o <output-file>
 clang -S -emit-llvm -O -Xclang -disable-llvm-passes test.c
 opt -mem2reg -sccp test.ll -S -o result.ll
 ```
+## 助教的lab3实现
+builder/ta_cminusfc，用法同cminusfc

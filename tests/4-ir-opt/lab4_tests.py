@@ -39,7 +39,8 @@ def compile_baseline_files(file_lists):
     exec_files = list()
     for each in file_lists:
         exec_file,_=os.path.splitext(each)
-        COMMAND = "clang -O0 -w " + each + " -o " + exec_file + " -L. -lcminus_io"
+        COMMAND = "clang -O0 -w " + each + " -o " + exec_file + " -L ../../build/ -lcminus_io"
+        # print(COMMAND)
         try:
             result = subprocess.run(COMMAND, stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,timeout=1)
             if result.returncode == 0:
@@ -55,14 +56,14 @@ def compile_baseline_files(file_lists):
     return exec_files
 
 def compile_testcases(file_lists,option):
-    compiler = "../../build/cminusfc"
+    compiler = "../../build/ta_cminusfc"
     COMMAND = compiler+' '+option+' '
     exec_files = list()
     print("Compiling ",option)
     progess_bar = tqdm(total=len(file_lists),ncols=50)
 
     for each in file_lists:
-        
+
         try:
             result = subprocess.run(COMMAND+each, stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,timeout=1)
             if result.returncode == 0:
@@ -74,7 +75,7 @@ def compile_testcases(file_lists,option):
         except Exception as _:
             exec_files.append(None)
             print(f"Compile {each.split('/')[-1]} \033[31;1m failed\033[0m")
-        
+
         progess_bar.update(1)
     progess_bar.close()
     return exec_files
@@ -99,7 +100,7 @@ def evaluate(file_lists, metric_func, check_mode=True):
             result.append(base)
         else:
             result.append(None)
-        
+
         subprocess.call(["rm", "-rf", each])
         progess_bar.update(1)
     progess_bar.close()
@@ -122,7 +123,7 @@ def check_if_correct(exec_file, check_mode=True):
             return False
     else:
         return True
-        
+
 
 def get_execute_time(exec_file):
     try:
@@ -160,7 +161,7 @@ def table_print(testcase, before_optimization, after_optimization, baseline):
                         '\t\t  %.2f'%result3 if result3!=None else '\t\t  None')
 
 def calculate_bb_score(input_bb_vals, answer_bb_vals):
-    # score of every bb is between [0,1] 
+    # score of every bb is between [0,1]
     score = len(list(set(input_bb_vals) & set(answer_bb_vals))) # lack of val is calculated
     score = (score-(len(input_bb_vals)-score))/len(answer_bb_vals) # extra val is calculated
     if score > 0:
@@ -168,9 +169,9 @@ def calculate_bb_score(input_bb_vals, answer_bb_vals):
     return 0
 
 def calculate_score(input_functions, answer_functions):
-    # input & answer is dict from json 
+    # input & answer is dict from json
     # calculate score use sum(score of every bb)/total_bb
-    # score of every bb is between [0,1] 
+    # score of every bb is between [0,1]
     # total_bb is count of live_in & live_out
 
     total_bb = 0
@@ -193,7 +194,7 @@ def calculate_score(input_functions, answer_functions):
 if __name__ == "__main__":
     script_path = os.path.join(os.getcwd(),__file__)
     usr_args = init_args()
-    
+
     if usr_args.ConstPropagation:
         print("="*10,"ConstPropagation","="*10)
         root_path = os.path.join(os.path.dirname(script_path),'testcases/ConstPropagation')
@@ -204,12 +205,26 @@ if __name__ == "__main__":
 
         exec_files2 = compile_testcases(file_lists=testcases,option='-mem2reg -const-propagation')
         results2 = evaluate(file_lists=exec_files2,metric_func=get_execute_time)
-        
+
         baseline_files = get_baseline_files(os.path.join(root_path,'baseline'))
         exec_files3 = compile_baseline_files(baseline_files)
         results3 = evaluate(file_lists=exec_files3,metric_func=get_execute_time,check_mode=False)
         table_print(testcase=testcases,before_optimization=results1,after_optimization=results2,baseline=results3)
+        # 20 fall test cases
+        print("="*10,"ConstPropagation","="*10)
+        root_path = os.path.join(os.path.dirname(script_path),'testcases_20/ConstPropagation')
+        testcases = get_raw_testcases(root_path=root_path)
 
+        exec_files1 = compile_testcases(file_lists=testcases,option='')
+        results1 = evaluate(file_lists=exec_files1,metric_func=get_execute_time)
+
+        exec_files2 = compile_testcases(file_lists=testcases,option='-mem2reg -const-propagation')
+        results2 = evaluate(file_lists=exec_files2,metric_func=get_execute_time)
+
+        baseline_files = get_baseline_files(os.path.join(root_path,'baseline'))
+        exec_files3 = compile_baseline_files(baseline_files)
+        results3 = evaluate(file_lists=exec_files3,metric_func=get_execute_time,check_mode=False)
+        table_print(testcase=testcases,before_optimization=results1,after_optimization=results2,baseline=results3)
     if usr_args.LoopInvHoist:
         print("="*10,"LoopInvHoist","="*10)
         root_path = os.path.join(os.path.dirname(script_path),'testcases/LoopInvHoist')
@@ -224,13 +239,25 @@ if __name__ == "__main__":
         exec_files3 = compile_baseline_files(baseline_files)
         results3 = evaluate(file_lists=exec_files3,metric_func=get_execute_time,check_mode=False)
         table_print(testcase=testcases,before_optimization=results1,after_optimization=results2,baseline=results3)
+        # 20 fall test cases
+        root_path = os.path.join(os.path.dirname(script_path),'testcases_20/LoopInvHoist')
+        testcases = get_raw_testcases(root_path=root_path)
+        exec_files1 = compile_testcases(file_lists=testcases,option='')
+        results1 = evaluate(file_lists=exec_files1,metric_func=get_execute_time)
 
+        exec_files2 = compile_testcases(file_lists=testcases,option='-mem2reg -loop-inv-hoist')
+        results2 = evaluate(file_lists=exec_files2,metric_func=get_execute_time)
+
+        baseline_files = get_baseline_files(os.path.join(root_path,'baseline'))
+        exec_files3 = compile_baseline_files(baseline_files)
+        results3 = evaluate(file_lists=exec_files3,metric_func=get_execute_time,check_mode=False)
+        table_print(testcase=testcases,before_optimization=results1,after_optimization=results2,baseline=results3)
     if usr_args.ActiveVars:
         print("="*10,"ActiveVars","="*10)
         root_path = os.path.join(os.path.dirname(script_path),'testcases/ActiveVars')
         testcases = get_raw_testcases(root_path=root_path)
-        
-        compiler = "../../build/cminusfc"
+
+        compiler = "../../build/ta_cminusfc"
         option = '-mem2reg -active-vars'
         COMMAND = compiler+' '+option+' '
         print("Compiling ",option)
@@ -247,6 +274,45 @@ if __name__ == "__main__":
                     print(f"\nCompile {each.split('/')[-1]} \033[32;1m success\033[0m")
                     with open('active_vars.json', "r") as load_input:
                         with open('testcases/ActiveVars/testcase-'+ str(i) +'.json', "r") as load_answer:
+                            print(f"generate json {each.split('/')[-1]} \033[32;1m success\033[0m")
+                            # here, input is a list of dict
+                            input_functions = json5.load(load_input)
+                            answer_functions = json5.load(load_answer)
+                            score = calculate_score(input_functions, answer_functions)
+                            score_list.append(score)
+                    subprocess.call(["rm", "-rf", exec_file])
+                else:
+                    print(f"\nnCompile {each.split('/')[-1]} \033[31;1m failed\033[0m")
+            except Exception as _:
+                print(f"Analyze {each.split('/')[-1]} \033[31;1m failed\033[0m")
+            progess_bar.update(1)
+        progess_bar.close()
+
+        i=0
+        for score in score_list:
+            i+=1
+            print('testcase-'+str(i)+':',score)
+        # 20 fall
+        root_path = os.path.join(os.path.dirname(script_path),'testcases_20/ActiveVars')
+        testcases = get_raw_testcases(root_path=root_path)
+
+        compiler = "../../build/ta_cminusfc"
+        option = '-mem2reg -active-vars'
+        COMMAND = compiler+' '+option+' '
+        print("Compiling ",option)
+        progess_bar = tqdm(total=len(testcases),ncols=50)
+
+        score_list = []
+        i = 0
+        for each in testcases:
+            i += 1
+            try:
+                result = subprocess.run(COMMAND+each, stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,timeout=1)
+                if result.returncode == 0:
+                    exec_file,_=os.path.splitext(each)
+                    print(f"\nCompile {each.split('/')[-1]} \033[32;1m success\033[0m")
+                    with open('active_vars.json', "r") as load_input:
+                        with open('testcases_20/ActiveVars/testcase-'+ str(i) +'.json', "r") as load_answer:
                             print(f"generate json {each.split('/')[-1]} \033[32;1m success\033[0m")
                             # here, input is a list of dict
                             input_functions = json5.load(load_input)
