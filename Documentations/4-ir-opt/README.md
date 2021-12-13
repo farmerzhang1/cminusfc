@@ -147,8 +147,6 @@ pm.run()	//按照注册的顺序运行 pass 的 run() 函数
 基本 pass 开发：
 - 每一个 pass 有一个 cpp 文件和对应的 hpp 文件，可以在 hpp 里定义辅助类或者成员变量使用，在 cpp 里的`run()`函数实现你的 pass 。
 
-
-
 ## 2. 运行与调试
 
 ### 运行 cminusfc
@@ -166,8 +164,6 @@ make install
 ./cminusfc [-mem2reg] [-const-propagation] [-active-vars] [-loop-invariant] <input-file>
 ```
 另外，若想要另外单独去进行某个优化 pass 的调试，可以利用助教给出的 passManager 来进行 pass 的注册和运行。
-
-
 
 ### 自动测试
 

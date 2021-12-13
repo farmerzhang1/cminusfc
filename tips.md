@@ -31,3 +31,5 @@ llc -march=riscv64 test.ll
 riscv64-linux-gnu-gcc test.s io.o -o test
 qemu-riscv64  -L /usr/riscv64-linux-gnu/ ./test
 ```
+## 助教的lab3实现
+builder/ta_cminusfc，用法同cminusfc

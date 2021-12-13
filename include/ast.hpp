@@ -11,14 +11,14 @@ extern "C"
 #include <map>
 #include <functional>
 
-enum class CminusType
+enum CminusType
 {
     TYPE_INT,
     TYPE_FLOAT,
     TYPE_VOID
 };
 
-enum class RelOp
+enum RelOp
 {
     // <=
     OP_LE,
@@ -34,7 +34,7 @@ enum class RelOp
     OP_NEQ
 };
 
-enum class AddOp
+enum AddOp
 {
     // +
     OP_PLUS,
@@ -42,7 +42,7 @@ enum class AddOp
     OP_MINUS
 };
 
-enum class MulOp
+enum MulOp
 {
     // *
     OP_MUL,
