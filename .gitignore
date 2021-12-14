@@ -1,11 +1,6 @@
 build/
-labs/
-*.tab.c
-*.tab.h
-lex.yy.c
 .vscode/
 infer-out/
-result*
 *.ll
 *.png
 *.dot
