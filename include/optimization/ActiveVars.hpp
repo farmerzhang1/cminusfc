@@ -14,17 +14,24 @@
 #include <queue>
 #include <fstream>
 
+using bb2vals = std::map<BasicBlock *, std::set<Value *>>;
+
 class ActiveVars : public Pass {
 public:
-    ActiveVars(Module *m) : Pass(m) {}
+    ActiveVars(Module *m) :
+        Pass(m) {}
     void run();
     void calc_def_and_use();
     std::string print();
-
+    const bb2vals &get_livein() const { return live_in; }
+    const bb2vals &get_liveout() const { return live_out; }
+    const bb2vals &get_livein(Function* f) const { return f2avin.at(f); }
+    const bb2vals &get_liveout(Function* f) const { return f2avout.at(f); }
 private:
     Function *func_;
-    std::map<BasicBlock *, std::set<Value *>> live_in, live_out, def, use;
+    bb2vals live_in, live_out, def, use;
     std::map<BasicBlock *, std::map<BasicBlock *, std::set<Value *>>> phiuses; // don't know which identifier to use
+    std::map<Function*, bb2vals> f2avin, f2avout;
 };
 
 #endif

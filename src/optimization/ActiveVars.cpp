@@ -40,6 +40,8 @@ void ActiveVars::run() {
             } while (changed);
             output_active_vars << print();
             output_active_vars << ",";
+            f2avin.insert({func, std::move(live_in)});
+            f2avout.insert({func, std::move(live_out)});
         }
     }
     output_active_vars << "]";

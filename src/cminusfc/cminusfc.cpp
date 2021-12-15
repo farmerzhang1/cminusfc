@@ -11,6 +11,7 @@
 #include "Mem2Reg.hpp"
 #include "PassManager.hpp"
 #include "cminusf_builder.hpp"
+#include "regalloc.h"
 
 using namespace std::literals::string_literals;
 
@@ -120,7 +121,8 @@ int main(int argc, char **argv) {
     if (!mem2reg && (loop_search || const_propagation || activevars || loop_inv_hoist))
         std::cout << "warning: did not turn on mem2reg" << std::endl;
     auto IR = m->print();
-
+    RegAlloc ra(m.get());
+    ra.run();
     std::ofstream output_stream;
     auto output_file = target_path + ".ll";
     output_stream.open(output_file, std::ios::out);
