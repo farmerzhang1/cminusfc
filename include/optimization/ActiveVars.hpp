@@ -23,10 +23,10 @@ public:
     void run();
     void calc_def_and_use();
     std::string print();
-    const bb2vals &get_livein() const { return live_in; }
-    const bb2vals &get_liveout() const { return live_out; }
-    const bb2vals &get_livein(Function* f) const { return f2avin.at(f); }
-    const bb2vals &get_liveout(Function* f) const { return f2avout.at(f); }
+    bb2vals &get_livein() { return live_in; }
+    bb2vals &get_liveout() { return live_out; }
+    bb2vals &get_livein(Function* f) { return f2avin.at(f); }
+    bb2vals &get_liveout(Function* f) { return f2avout.at(f); }
 private:
     Function *func_;
     bb2vals live_in, live_out, def, use;

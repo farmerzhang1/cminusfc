@@ -1,21 +1,33 @@
+#include "reg.h"
 #include "regalloc.h"
+#include "Function.h"
 #include <functional>
 
 RegAlloc::RegAlloc(Module *m) :
-    m_(m), av(m) {
-    av.run();
+    m_(m), av(m) /* , live_in(av.get_livein()), live_out(av.get_liveout()) */ {
+    av.run(); // note the above two lives are empty, but we don't need it
 }
-
+void RegAlloc::print_stats() {
+    std::cout << f_->get_name() << std::endl << "regs" << std::endl;
+    for (auto [k, v] : maps) {
+        std::cout << k->get_name() << ": " << v.get_name() << std::endl;
+    }
+    std::cout << "stack" << std::endl;
+    for (auto [k, v] : location) {
+        std::cout << k->get_name() << ": " << v << std::endl;
+    }
+}
 void RegAlloc::run() {
     for (auto f : m_->get_functions()) {
+        if (f->get_num_basic_blocks() == 0) continue;
         f_ = f;
         init_func();
         LinearScanRegisterAllocation();
+        print_stats();
     }
 }
 
 void RegAlloc::LinearScanRegisterAllocation() {
-    active.clear();
     for (auto i : intervals) {
         ExpireOldIntervals(i);
         if (active.size() == regs.size())
@@ -29,6 +41,15 @@ void RegAlloc::LinearScanRegisterAllocation() {
 
 void RegAlloc::init_func() {
     int i{0};
+    maps.clear();
+    val2interval.clear();
+    active.clear();
+    intervals.clear();
+    available_regs = regs;
+    int2bb.clear();
+    bb2int.clear();
+    auto &live_in = av.get_livein(f_);
+    auto &live_out = av.get_liveout(f_);
     for (auto bb : f_->get_basic_blocks()) {
         int2bb[i] = bb;
         bb2int[bb] = i++;
@@ -51,10 +72,10 @@ void RegAlloc::init_func() {
     };
     std::for_each(live_in.begin(), live_in.end(), [fff](auto i) { fff(true, i); });
     std::for_each(live_out.begin(), live_out.end(), [fff](auto i) { fff(false, i); });
-    for (auto [_, val] : val2interval) {
-        auto [_1, b1] = active.insert(val);
-        assert(b1);
-        auto [_2, b2] = intervals.insert(val);
+    for (auto [val, interv] : val2interval) {
+        // auto [_1, b1] = active.insert(interv);
+        // assert(b1);
+        auto [_2, b2] = intervals.insert(interv);
         assert(b2);
     }
 }
@@ -75,11 +96,13 @@ void RegAlloc::SpillAtInterval(ip &i) {
     auto &spill = *active.rbegin(); // 要待最久的变量 spill 掉
     if (i->end < spill->end) {
         maps[i->val] = maps[spill->val];
-        location[spill->val] = stack_offset++;
+        location[spill->val] = spill->val->get_type()->get_size();
+        stack_size += spill->val->get_type()->get_size();
         active.erase(spill);
         active.insert(i);
     } else {
-        location[i->val] = stack_offset++;
+        location[i->val] = i->val->get_type()->get_size();
+        stack_size += i->val->get_type()->get_size();
     }
 }
 
@@ -93,8 +116,7 @@ void RegAlloc::assign_reg(ip &i) {
 }
 
 void RegAlloc::free_reg(ip &i) {
-    // TODO
     auto r = maps[i->val];
-    maps.erase(i->val);
+    // maps.erase(i->val);
     available_regs.insert(r);
 }

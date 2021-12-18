@@ -35,6 +35,10 @@ public:
     std::list<GlobalVariable *> get_global_variable();
     std::string get_instr_op_name( Instruction::OpID instr ) { return instr_id2string_[instr]; }
     void set_print_name();
+    std::string get_module_name() { return module_name_; }
+    void set_module_name( std::string module_name ) { module_name_ = module_name; }
+    std::string get_filename() { return source_filename_; }
+    void set_filename( std::string filename ) { source_filename_ = filename; }
     virtual std::string print();
 private:
     std::list<GlobalVariable *> global_list_;   // The Global Variables in the module
@@ -43,7 +47,7 @@ private:
     std::map<Instruction::OpID, std::string> instr_id2string_;   // Instruction from opid to string
 
     std::string module_name_;         // Human readable identifier for the module
-    std::string source_file_name_;    // Original source file name for module, for test and debug
+    std::string source_filename_;    // Original source file name for module, for test and debug
 
 private:
     IntegerType *int1_ty_;

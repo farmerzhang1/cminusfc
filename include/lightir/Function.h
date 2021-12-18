@@ -18,8 +18,7 @@ class BasicBlock;
 class Type;
 class FunctionType;
 
-class Function : public Value
-{
+class Function : public Value {
 public:
     Function(FunctionType *ty, const std::string &name, Module *parent);
     ~Function() = default;
@@ -39,7 +38,7 @@ public:
     std::list<Argument *>::iterator arg_begin() { return arguments_.begin(); }
     std::list<Argument *>::iterator arg_end() { return arguments_.end(); }
 
-    void remove(BasicBlock* bb);
+    void remove(BasicBlock *bb);
     BasicBlock *get_entry_block() { return *basic_blocks_.begin(); }
 
     std::list<BasicBlock *> &get_basic_blocks() { return basic_blocks_; }
@@ -49,13 +48,14 @@ public:
 
     void set_instr_name();
     std::string print();
+    const bool has_fcalls() const;
 
 private:
     void build_args();
 
 private:
-    std::list<BasicBlock *> basic_blocks_;    // basic blocks
-    std::list<Argument *> arguments_;         // arguments
+    std::list<BasicBlock *> basic_blocks_; // basic blocks
+    std::list<Argument *> arguments_;      // arguments
     Module *parent_;
     unsigned seq_cnt_;
     // unsigned num_args_;
@@ -64,17 +64,17 @@ private:
 };
 
 // Argument of Function, does not contain actual value
-class Argument : public Value
-{
+class Argument : public Value {
 public:
     /// Argument constructor.
     explicit Argument(Type *ty, const std::string &name = "", Function *f = nullptr,
-                    unsigned arg_no = 0)
-        : Value(ty, name), parent_(f), arg_no_(arg_no) {}
+                      unsigned arg_no = 0) :
+        Value(ty, name),
+        parent_(f), arg_no_(arg_no) {}
     ~Argument() {}
 
     inline const Function *get_parent() const { return parent_; }
-    inline       Function *get_parent()       { return parent_; }
+    inline Function *get_parent() { return parent_; }
 
     /// For example in "void foo(int a, float b)" a is 0 and b is 1.
     unsigned get_arg_no() const {
@@ -82,10 +82,11 @@ public:
         return arg_no_;
     }
 
-    virtual std::string print() override ;
+    virtual std::string print() override;
+
 private:
     Function *parent_;
-    unsigned arg_no_;  // argument No.
+    unsigned arg_no_; // argument No.
 };
 
 #endif // SYSYC_FUNCTION_H

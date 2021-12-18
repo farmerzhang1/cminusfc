@@ -12,6 +12,7 @@
 #include "PassManager.hpp"
 #include "cminusf_builder.hpp"
 #include "regalloc.h"
+#include "codegen.h"
 
 using namespace std::literals::string_literals;
 
@@ -121,14 +122,20 @@ int main(int argc, char **argv) {
     if (!mem2reg && (loop_search || const_propagation || activevars || loop_inv_hoist))
         std::cout << "warning: did not turn on mem2reg" << std::endl;
     auto IR = m->print();
-    RegAlloc ra(m.get());
-    ra.run();
+    m->set_filename(input_path);
     std::ofstream output_stream;
     auto output_file = target_path + ".ll";
     output_stream.open(output_file, std::ios::out);
     output_stream << "; ModuleID = 'cminus'\n";
     output_stream << "source_filename = \"" + input_path + "\"\n\n";
     output_stream << IR;
+    output_stream.close();
+    // RegAlloc ra(m.get());
+    // ra.run();
+    Codegen cg(m.get());
+    auto output_asm = target_path + ".s";
+    output_stream.open(output_asm, std::ios::out);
+    output_stream << cg.gen_module();
     output_stream.close();
     if (!emit) {
         std::string lib = CMAKE_LIBRARY_OUTPUT_DIRECTORY;
