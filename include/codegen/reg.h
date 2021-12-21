@@ -42,4 +42,11 @@ public:
     friend Codegen;
 };
 
+extern const std::array<Reg, 8> args;
+extern const std::array<Reg, 8> fargs;
+extern const std::array<Reg, 12> saveds;
+extern const std::array<Reg, 12> fsaveds;
+extern const std::array<Reg, 7> temps;
+extern const std::array<Reg, 7> ftemps;
+
 #endif

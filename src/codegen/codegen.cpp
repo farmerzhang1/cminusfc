@@ -24,7 +24,7 @@ std::string Codegen::gen_module() {
     ss << "\t.text" << std::endl;
     ss << "\t.file\t" << std::quoted(m->get_filename()) << std::endl;
     for (auto f : m->get_functions()) gen_function(this->f_ = f);
-    generate_local_constants();
+    gen_local_constants();
     return ss.str();
 }
 
@@ -32,6 +32,10 @@ void Codegen::gen_function(Function *f) {
     if (f->get_basic_blocks().empty()) return;
     reg_mapping = std::move(regalloc.f_reg_map[f]);
     stack_mapping = std::move(regalloc.f_stack_map[f]);
+    free_regs.clear();
+    for (auto arg : args) free_regs.insert(arg);
+    for (auto temp : temps) free_regs.insert(temp);
+    for (auto arg : f->get_args()) free_regs.erase(reg_mapping[arg]);
     allocate_stack();
     ss << "\t.globl\t" << f->get_name() << std::endl;
     ss << "\t.type\t" << f->get_name() << ", @function" << std::endl;
@@ -99,7 +103,7 @@ void Codegen::allocate_stack() {
 }
 
 void Codegen::comment(std::string s) {
-    ss << "#" << s << "\n";
+    ss << "# " << s << "\n";
 }
 
 void Codegen::call(CallInst *c) {
@@ -107,8 +111,10 @@ void Codegen::call(CallInst *c) {
     for (auto i = 1; i < c->get_num_operand(); i++) {
         auto arg = c->get_operand(i);
         if (arg->get_type()->is_integer_type()) {
+            free_regs.erase(args[int_arg_counter]);
             assign(args[int_arg_counter++], arg);
         } else if (arg->get_type()->is_float_type()) {
+            free_regs.erase(args[fl_arg_counter]);
             assign(fargs[fl_arg_counter++], arg);
         }
     }
@@ -139,7 +145,7 @@ void Codegen::assign(Reg r, Value *v) {
     }
 }
 
-void Codegen::generate_local_constants() {
+void Codegen::gen_local_constants() {
     for (auto i = 0; i < local_floats.size(); i++) {
         ss << ".LC" << i << ":\n";
         ss << "\t.float " << local_floats[i] << "\n";
@@ -157,11 +163,7 @@ void Codegen::push_caller_saved_regs() {
 
 Reg Codegen::get_temp() {
     // FIXME: 加一个 free regs 的set, or?
-    for (auto r : args) {
-        bool found = true;
-        for (auto [k, v] : reg_mapping)
-            if (v == r) found = false;
-        if (found) return r;
-    }
-    return Reg(-1);
+    assert(!free_regs.empty());
+    auto temp = *free_regs.begin();
+    return temp;
 }

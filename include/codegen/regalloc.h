@@ -47,9 +47,9 @@ private:
     std::map<BasicBlock *, int> bb2int;
     std::map<int, BasicBlock *> int2bb;
     // TODO: check registers that can be allocated
-    const std::set<Reg> regs{Reg(1), Reg(2), Reg(3), Reg(4), Reg(5), Reg(6), Reg(7), Reg(8), Reg(9)};
-    const std::array<Reg, 8> args {Reg(10), Reg(11), Reg(12), Reg(13), Reg(14), Reg(15), Reg(16), Reg(17)};
-    const std::array<Reg, 8> fargs {Reg(10, true), Reg(11, true), Reg(12, true), Reg(13, true), Reg(14, true), Reg(15, true), Reg(16, true), Reg(17, true)};
+    const std::set<Reg> regs{Reg(5), Reg(6), Reg(7), Reg(28), Reg(29), Reg(30), Reg(31)};
+    // const std::array<Reg, 8> args {Reg(10), Reg(11), Reg(12), Reg(13), Reg(14), Reg(15), Reg(16), Reg(17)};
+    // const std::array<Reg, 8> fargs {Reg(10, true), Reg(11, true), Reg(12, true), Reg(13, true), Reg(14, true), Reg(15, true), Reg(16, true), Reg(17, true)};
     std::set<Reg> available_regs;
     std::map<Value *, Reg> reg_mappings; // lightIR 的 raw 指针 (Value*, Module* etc.) 留着，改不动改不动
     std::map<Value *, int> stack_mappings;
