@@ -9,44 +9,20 @@ class Instgen {
 private:
     // std::stringstream& ss;
     // i think we can add fp afterwards
-    enum class Inst {
-        addi,
-        slti,
-        andi,
-        ori,
-        xori,
-        slli,
-        srli,
-        srai,
-        lui,
-        auipc,
-        add,
-        slt,
-        sltu,
-        and_,
-        or_,
-        xor_,
-        sll,
-        srl,
-        sub,
-        sra,
-        jal,
-        jalr,
-        beq,
-        bne,
-        blt,
-        bge,
-        load,
-        store,
-        ret
-    };
-
 public:
     Instgen() {}
     std::string ret();
     std::string addi(Reg, Reg, int);
     std::string sd(Reg, int, Reg);
+    std::string sw(Reg, int, Reg);
     std::string ld(Reg, int, Reg);
+    std::string lw(Reg, int, Reg);
     std::string jr(Reg);
+    std::string call(std::string);
+    std::string li (Reg, int);
+    std::string lla(Reg, std::string);
+    std::string flw(Reg, int, Reg);
+    std::string fsw(Reg, int, Reg);
+    std::string mv(Reg, Reg);
 };
 #endif
