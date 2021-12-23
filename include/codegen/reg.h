@@ -8,6 +8,7 @@
 using namespace std::literals::string_literals;
 class Instgen;
 class Codegen;
+class RegAlloc;
 
 class Reg {
 private:
@@ -30,6 +31,8 @@ public:
             id = 1;
         else if (s == "s0"s)
             id = 8;
+        else if (s == "a0"s)
+            id = 10;
         else
             throw std::runtime_error("invalid string names for reg");
     }
@@ -40,6 +43,7 @@ public:
     const std::string get_name() const { return (f ? "f" : "") + alts.at(id); }
     friend Instgen;
     friend Codegen;
+    friend RegAlloc;
 };
 
 extern const std::array<Reg, 8> args;

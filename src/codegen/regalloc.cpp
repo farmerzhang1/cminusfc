@@ -4,9 +4,7 @@
 #include <functional>
 
 RegAlloc::RegAlloc(Module *m) :
-    m_(m) /* , live_in(av.get_livein()), live_out(av.get_liveout()) */
-// av.run(); // note the above two lives are empty, but we don't need it
-{}
+    m_(m) {}
 
 void RegAlloc::print_stats() {
     std::cout << f_->get_name() << std::endl
@@ -27,7 +25,7 @@ void RegAlloc::run() {
         init_func();
         pre_allocate_args();
         LinearScanRegisterAllocation();
-        print_stats();
+        // print_stats();
         f_reg_map.insert({f, std::move(reg_mappings)});
         f_stack_map.insert({f, std::move(stack_mappings)});
     }
@@ -67,7 +65,6 @@ void RegAlloc::LinearScanRegisterAllocation() {
 bool RegAlloc::pre_allocated(ip &interval) {
     for (auto arg : f_->get_args())
         if (interval->val == arg) return true;
-
     return false;
 }
 
@@ -79,32 +76,15 @@ void RegAlloc::init_func() {
     active.clear();
     intervals.clear();
     available_regs = regs;
+    for (auto r : fregs) available_regs.insert(r);
     for (auto a : args) available_regs.insert(a);
     for (auto fa : fargs) available_regs.insert(fa);
     int2bb.clear();
     bb2int.clear();
-    // auto &live_in = av.get_livein(f_);
-    // auto &live_out = av.get_liveout(f_);
     for (auto bb : f_->get_basic_blocks()) {
         int2bb[i] = bb;
         bb2int[bb] = i++;
     }
-    // looks like we can use auto in func params
-    // auto fff = [this](auto i) -> void {
-    //     auto bb = i.first;
-    //     auto set = i.second;
-    //     int bblevel = bb2int[bb];
-    //     point srcloc(bblevel, in);
-    //     for (auto val : set) {
-    //         if (val2interval.contains(val)) {
-    //             auto &t = val2interval[val];
-    //             if (srcloc > t->end) t->end = srcloc;
-    //             if (srcloc < t->start) t->start = srcloc;
-    //         } else {
-    //             val2interval[val] = std::make_shared<interval>(val, srcloc, srcloc);
-    //         }
-    //     }
-    // };
     int bbcounter = 0;
     int instr_counter = 0;
     for (auto arg : f_->get_args()) {
@@ -116,20 +96,19 @@ void RegAlloc::init_func() {
         instr_counter = 0;
         for (auto instr : bb->get_instructions()) {
             instr_counter++;
+            if (instr->is_alloca()) continue; // alloca 的返回值（指针）已经在栈上了，不需要（没必要？）分配寄存器
             point srcloc(bbcounter, instr_counter);
             if (!instr->get_name().empty()) {
                 val2interval.insert({instr, std::make_shared<interval>(instr, srcloc, srcloc)});
             }
             for (auto rand : instr->get_operands()) {
-                if (val2interval.contains(rand)) { // 直接不考虑之前没加入interval映射里的东西, might be label, constant...
+                if (val2interval.contains(rand)) { // 直接不考虑之前没加入interval映射里的东西, might be label, constant, alloca
                     val2interval[rand]->end.bbindex = bbcounter;
                     val2interval[rand]->end.line_no = instr_counter;
                 }
             }
         }
     }
-    // std::for_each(live_in.begin(), live_in.end(), [fff](auto i) { fff(i); });
-    // std::for_each(live_out.begin(), live_out.end(), [fff](auto i) { fff(i); });
     for (auto [val, interv] : val2interval) {
         auto [_2, success] = intervals.insert(interv);
         assert(success);
@@ -165,7 +144,13 @@ void RegAlloc::SpillAtInterval(ip &i) {
 void RegAlloc::assign_reg(ip &i) {
     assert(!available_regs.empty());
     assert(!reg_mappings.contains(i->val));
-    auto r = *available_regs.begin();
+    Reg r;
+    for (auto avai : available_regs) {
+        if (avai.f ^ i->val->get_type()->is_integer_type()) {
+            r = avai;
+            break;
+        }
+    }
     reg_mappings[i->val] = r;
     available_regs.erase(r);
 }

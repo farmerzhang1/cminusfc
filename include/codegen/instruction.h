@@ -12,17 +12,29 @@ private:
 public:
     Instgen() {}
     std::string ret();
-    std::string addi(Reg, Reg, int);
     std::string sd(Reg, int, Reg);
     std::string sw(Reg, int, Reg);
     std::string ld(Reg, int, Reg);
     std::string lw(Reg, int, Reg);
+    std::string flw(Reg, int, Reg);
+    std::string fsw(Reg, int, Reg);
     std::string jr(Reg);
     std::string call(std::string);
     std::string li (Reg, int);
     std::string lla(Reg, std::string);
-    std::string flw(Reg, int, Reg);
-    std::string fsw(Reg, int, Reg);
     std::string mv(Reg, Reg);
+    std::string fmvs(Reg, Reg);
+    std::string add(Reg, Reg, Reg);
+    std::string fadds(Reg, Reg, Reg);
+    std::string addi(Reg, Reg, int);
+    std::string sub(Reg, Reg, Reg);
+    std::string subi(Reg, Reg, int);
+    std::string fsubs(Reg, Reg, Reg);
+    std::string mul(Reg, Reg, Reg);
+    std::string fmuls(Reg, Reg, Reg);
+    std::string div(Reg, Reg, Reg);
+    std::string fdivs(Reg, Reg, Reg);
+    std::string fcvtsw(Reg, Reg);
+    std::string fcvtws(Reg, Reg);
 };
 #endif

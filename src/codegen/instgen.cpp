@@ -11,6 +11,9 @@ std::string Instgen::ret() {
 std::string Instgen::addi(Reg dst, Reg rs1, int imm) {
     return "\taddi " + dst.get_name() + "," + rs1.get_name() + "," + std::to_string(imm) + "\n";
 }
+std::string Instgen::add(Reg dst, Reg rs1, Reg rs2) {
+    return "\tadd " + dst.get_name() + "," + rs1.get_name() + "," + rs2.get_name() + "\n";
+}
 
 std::string Instgen::sd(Reg src, int offset, Reg base) {
     assert(!src.f);
@@ -45,15 +48,71 @@ std::string Instgen::lla(Reg dst, std::string label) {
 }
 
 std::string Instgen::flw(Reg dst, int offset, Reg base) {
-    assert(dst.f);
+    assert(dst.f && !base.f);
     return "\tflw " + dst.get_name() + "," + std::to_string(offset) + "(" + base.get_name() + ")\n";
 }
 
 std::string Instgen::mv(Reg dst, Reg src) {
-    return "\tmv " + dst.get_name() + " " + src.get_name() + "\n";
+    assert(!dst.f && !src.f);
+    return "\tmv " + dst.get_name() + "," + src.get_name() + "\n";
 }
 
 std::string Instgen::fsw(Reg src, int offset, Reg base) {
-    assert(src.f);
+    assert(src.f && !base.f);
     return "\tfsw " + src.get_name() + "," + std::to_string(offset) + "(" + base.get_name() + ")\n";
+}
+
+std::string Instgen::sub(Reg src, Reg rs1, Reg rs2) {
+    assert(!src.f && !rs1.f && !rs2.f);
+    return "\tsub " + src.get_name() + "," + rs1.get_name() + "," + rs2.get_name() + "\n";
+}
+
+std::string Instgen::subi(Reg src, Reg rs1, int imm) {
+    assert(!src.f && !rs1.f);
+    return "\tsubi " + src.get_name() + "," + rs1.get_name() + "," + std::to_string(imm) + "\n";
+}
+
+std::string Instgen::fcvtsw(Reg dst, Reg src) {
+    assert(dst.f && !src.f);
+    return "\tfcvt.s.w " + dst.get_name() + "," + src.get_name() + "\n";
+}
+
+std::string Instgen::fcvtws(Reg dst, Reg src) {
+    assert(!dst.f && src.f);
+    return "\tfcvt.w.s " + dst.get_name() + "," + src.get_name() + "\n";
+}
+
+std::string Instgen::fadds(Reg dst, Reg rs1, Reg rs2) {
+    assert(dst.f && rs1.f && rs2.f);
+    return "\tfadd.s " + dst.get_name() + "," + rs1.get_name() + "," + rs2.get_name() + "\n";
+}
+
+std::string Instgen::fmvs(Reg dst, Reg src) {
+    assert(dst.f && src.f);
+    return "\tfmv.s " + dst.get_name() + "," + src.get_name() + "\n";
+}
+
+std::string Instgen::mul(Reg dst, Reg rs1, Reg rs2) {
+    assert(!dst.f && !rs1.f && !rs2.f);
+    return "\tmul " + dst.get_name() + "," + rs1.get_name() + "," + rs2.get_name() + "\n";
+}
+
+std::string Instgen::fmuls(Reg dst, Reg rs1, Reg rs2) {
+    assert(dst.f && rs1.f && rs2.f);
+    return "\tfmul.s " + dst.get_name() + "," + rs1.get_name() + "," + rs2.get_name() + "\n";
+}
+
+std::string Instgen::div(Reg dst, Reg rs1, Reg rs2) {
+    assert(!dst.f && !rs1.f && !rs2.f);
+    return "\tdiv " + dst.get_name() + "," + rs1.get_name() + "," + rs2.get_name() + "\n";
+}
+
+std::string Instgen::fdivs(Reg dst, Reg rs1, Reg rs2) {
+    assert(dst.f && rs1.f && rs2.f);
+    return "\tfdiv.s " + dst.get_name() + "," + rs1.get_name() + "," + rs2.get_name() + "\n";
+}
+
+std::string Instgen::fsubs(Reg dst, Reg rs1, Reg rs2) {
+    assert(dst.f && rs1.f && rs2.f);
+    return "\tfsub.s " + dst.get_name() + "," + rs1.get_name() + "," + rs2.get_name() + "\n";
 }

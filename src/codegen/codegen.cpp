@@ -13,7 +13,7 @@
 using namespace std::literals::string_literals;
 
 Codegen::Codegen(Module *m) :
-    m(m), ig(), sp("sp"s), s0("s0"s), ra("ra"s), zero(0), regalloc(m) {
+    m(m), ig(), sp("sp"s), s0("s0"s), ra("ra"s), zero(0), a0("a0"s), regalloc(m) {
     regalloc.run();
     // this is what a friend looks like: move your things!
     // stack_mapping = std::move(ra.stack_mappings);
@@ -33,8 +33,11 @@ void Codegen::gen_function(Function *f) {
     reg_mapping = std::move(regalloc.f_reg_map[f]);
     stack_mapping = std::move(regalloc.f_stack_map[f]);
     free_regs.clear();
+    for (int i = 0; i < 32; i++) fresh[Reg(i, true)] = fresh[Reg(i)] = true;
     for (auto arg : args) free_regs.insert(arg);
+    for (auto arg : fargs) free_regs.insert(arg);
     for (auto temp : temps) free_regs.insert(temp);
+    for (auto temp : ftemps) free_regs.insert(temp);
     for (auto arg : f->get_args()) free_regs.erase(reg_mapping[arg]);
     allocate_stack();
     ss << "\t.globl\t" << f->get_name() << std::endl;
@@ -50,7 +53,118 @@ void Codegen::gen_bb(BasicBlock *bb) {
         switch (instr->get_instr_type()) {
         case Instruction::OpID::ret: fun_epilogue(instr->get_function()); break;
         case Instruction::OpID::call: call(static_cast<CallInst *>(instr)); break;
+        case Instruction::OpID::alloca: break; // already allocated in allocate_stack
+        case Instruction::OpID::add:
+        case Instruction::OpID::sub:
+        case Instruction::OpID::mul:
+        case Instruction::OpID::sdiv:
+            bin_inst(dynamic_cast<BinaryInst *>(instr), instr->get_instr_type());
+            break;
+        case Instruction::OpID::fadd:
+        case Instruction::OpID::fsub:
+        case Instruction::OpID::fmul:
+        case Instruction::OpID::fdiv:
+            bin_inst(dynamic_cast<BinaryInst *>(instr), instr->get_instr_type(), true);
+            break;
+        case Instruction::OpID::fptosi:
+            fptosi(instr, instr->get_operand(0));
+            break;
+        case Instruction::OpID::sitofp:
+            sitofp(instr, instr->get_operand(0));
+            break;
         default: throw std::runtime_error(instr->get_instr_op_name() + " not implemented!");
+        }
+    }
+}
+
+void Codegen::bin_inst_imm(BinaryInst *dest, Instruction::OpID op, Value *val, Constant *imm, bool f) {
+    comment("immediate");
+    auto constint = dynamic_cast<ConstantInt *>(imm);
+    int i = constint->get_value();
+    if (reg_mapping.contains(dest)) {
+        auto dest_reg = reg_mapping[dest];
+        free_regs.erase(dest_reg);
+        assign(dest_reg, val);
+        switch (op) {
+        case Instruction::OpID::add:
+            ss << ig.addi(dest_reg, dest_reg, i);
+            break;
+        case Instruction::OpID::sub:
+            ss << ig.addi(dest_reg, dest_reg, -i);
+            break;
+        default:
+            break;
+        }
+    } else {
+        // TODO stack
+    }
+}
+
+void Codegen::bin_inst(BinaryInst *dest, Instruction::OpID op, bool f) {
+    auto lhs_val = dest->get_operand(0);
+    auto rhs_val = dest->get_operand(1);
+    auto lhs_const = dynamic_cast<ConstantInt *>(lhs_val);
+    auto rhs_const = dynamic_cast<ConstantInt *>(rhs_val);
+    // if one is constant, use immediate
+    if (!f && (op == Instruction::OpID::add || op == Instruction::OpID::sub)) { // can't be float
+        if (rhs_const && rhs_const->get_value() < (1 << 11)) {
+            bin_inst_imm(dest, op, lhs_val, rhs_const, f);
+            return;
+        } else if (lhs_const && lhs_const->get_value() < (1 << 11) && // 减法(non-abelian!?*^&(O&))不可
+                   op != Instruction::OpID::sub) {
+            bin_inst_imm(dest, op, rhs_val, lhs_const, f);
+            return;
+        }
+    }
+
+    // both lhs and rhs are variables
+    auto dest_reg = reg_mapping.at(dest);
+    free_regs.erase(dest_reg);
+    assign(dest_reg, lhs_val);
+    auto rhs_reg = reg_mapping.contains(rhs_val) ? reg_mapping[rhs_val] : get_temp(f);
+    assign(rhs_reg, rhs_val);
+    if (!f) {
+        comment("binary instruction with variables");
+        if (reg_mapping.contains(dest)) {
+            switch (op) {
+            case Instruction::OpID::add:
+                ss << ig.add(dest_reg, dest_reg, rhs_reg);
+                break;
+            case Instruction::OpID::sub:
+                ss << ig.sub(dest_reg, dest_reg, rhs_reg);
+                break;
+            case Instruction::OpID::mul:
+                ss << ig.mul(dest_reg, dest_reg, rhs_reg);
+                break;
+            case Instruction::OpID::sdiv:
+                ss << ig.div(dest_reg, dest_reg, rhs_reg);
+                break;
+            default:
+                break;
+            }
+        } else if (stack_mapping.contains(dest)) {
+            // TODO
+        }
+    } else {
+        comment("binary instruction with floats");
+        if (reg_mapping.contains(dest)) {
+            switch (op) {
+            case Instruction::OpID::fadd:
+                ss << ig.fadds(dest_reg, dest_reg, rhs_reg);
+                break;
+            case Instruction::OpID::fsub:
+                ss << ig.fsubs(dest_reg, dest_reg, rhs_reg);
+                break;
+            case Instruction::OpID::fmul:
+                ss << ig.fmuls(dest_reg, dest_reg, rhs_reg);
+                break;
+            case Instruction::OpID::fdiv:
+                ss << ig.fdivs(dest_reg, dest_reg, rhs_reg);
+                break;
+            default:
+                break;
+            }
+        } else if (stack_mapping.contains(dest)) {
         }
     }
 }
@@ -86,9 +200,22 @@ void Codegen::allocate_stack() {
     s0_offset.clear();
     stack_size = f_->has_fcalls() ? 16 : 8;
     // TODO: calculate stack size here, not in register allocation phase
+    // 这写的是真的丑(
     for (auto &[_, v] : stack_mapping) {
         deepest = std::max(deepest, v);
         v += stack_size;
+    }
+    for (auto bb : f_->get_basic_blocks()) {
+        for (auto instr : bb->get_instructions()) {
+            if (instr->is_alloca()) {
+                // TODO
+                auto alloca = dynamic_cast<AllocaInst *>(instr);
+                auto s = alloca->get_alloca_type()->get_size();
+                auto [_, success] = alloca_offset.insert({instr, s});
+                assert(success); // 无聊就加点assert~
+                stack_size += s;
+            }
+        }
     }
     if (f_->has_fcalls()) {
         int current_offset = -20;
@@ -108,6 +235,7 @@ void Codegen::comment(std::string s) {
 
 void Codegen::call(CallInst *c) {
     int int_arg_counter{0}, fl_arg_counter{0};
+    // prepare for arguments
     for (auto i = 1; i < c->get_num_operand(); i++) {
         auto arg = c->get_operand(i);
         if (arg->get_type()->is_integer_type()) {
@@ -119,29 +247,62 @@ void Codegen::call(CallInst *c) {
         }
     }
     ss << ig.call(c->get_operand(0)->get_name());
+    for (auto r : caller_saved_regs) fresh[r] = false;
+    // process return value, if any
+    if (!c->get_function_type()->get_return_type()->is_void_type()) {
+        if (reg_mapping.contains(c)) {
+            auto r = reg_mapping.at(c);
+            ss << ig.mv(r, a0);
+            ss << ig.sw(a0, s0_offset[r], s0);
+            free_regs.erase(r);
+            in_use.insert(r);
+            fresh[r] = true;
+        } else if (stack_mapping.contains(c))
+            ss << ig.sw(a0, stack_mapping[c], sp); // TODO: check base register (sp, or s0?)
+        else
+            // can we add static_assert ? (i guess not)
+            throw std::runtime_error("why is this call not (in register or in stack)?");
+    }
 }
 
-void Codegen::assign(Reg r, Value *v) {
+void Codegen::alloca(Instruction *inst) {
+    if (reg_mapping.contains(inst)) {
+        // ss << ig.ld(reg_mapping[inst], alloca_offset[inst], sp);
+    } else if (stack_mapping.contains(inst)) {
+        // TODO
+        // do nothing because it's already on stack??
+    }
+}
+
+void Codegen::assign(Reg dst, Value *v) {
     auto g = dynamic_cast<GlobalVariable *>(v);
     if (v->get_name().empty()) { // constant (i suppose)
         auto i = dynamic_cast<ConstantInt *>(v);
         auto f = dynamic_cast<ConstantFP *>(v);
-        if (i)
-            ss << ig.addi(r, zero, i->get_value());
+        if (i) // FIXME: 立即数就12(11)位！
+            ss << ig.addi(dst, zero, i->get_value());
         else if (f) {
             local_floats.push_back(f->get_value());
             Reg temp = get_temp();
             ss << ig.lla(temp, ".LC" + std::to_string(local_floats.size() - 1));
-            ss << ig.flw(r, 0, temp);
+            ss << ig.flw(dst, 0, temp);
         }
-    } else {
+    } else if (reg_mapping.contains(v)) {
         // TODO
-        // throw(std::runtime_error("register allocation is not done!"));
-        assert(reg_mapping.contains(v));
-        if (r.f)
-            ss << ig.flw(r, s0_offset[reg_mapping[v]], s0);
-        else
-            ss << ig.lw(r, s0_offset[reg_mapping[v]], s0);
+        auto src_reg = reg_mapping[v];
+        if (dst.f) {
+            if (fresh[src_reg])
+                ss << ig.fmvs(dst, src_reg); // TODO add a fmv
+            else
+                ss << ig.flw(dst, s0_offset[src_reg], s0);
+        } else {
+            if (fresh[src_reg])
+                ss << ig.mv(dst, src_reg);
+            else
+                ss << ig.lw(dst, s0_offset[src_reg], s0);
+        }
+    } else if (stack_mapping.contains(v)) {
+        // TODO
     }
 }
 
@@ -161,9 +322,52 @@ void Codegen::push_caller_saved_regs() {
             ss << ig.sw(caller_reg, offset, s0);
 }
 
-Reg Codegen::get_temp() {
-    // FIXME: 加一个 free regs 的set, or?
+Reg Codegen::get_temp(bool f) {
     assert(!free_regs.empty());
-    auto temp = *free_regs.begin();
-    return temp;
+    for (auto r : free_regs)
+        if (r.f == f)
+            return r;
+    throw std::runtime_error("no free regs!");
+    return Reg(-1);
+}
+
+void Codegen::fptosi(Value *dest, Value *fval) {
+    auto constf = dynamic_cast<ConstantFP *>(fval);
+    Reg freg;
+    if (constf) {
+        freg = get_temp(true);
+        assign(freg, fval);
+    } else if (reg_mapping.contains(fval)) {
+        freg = reg_mapping[fval];
+        // assign(freg, fval);
+    } else if (stack_mapping.contains(fval)) {
+        // TODO
+    }
+
+    if (reg_mapping.contains(dest)) {
+        ss << ig.fcvtws(reg_mapping[dest], freg);
+    } else if (stack_mapping.contains(dest)) {
+        // TODO
+    } else {
+        throw std::runtime_error("not in stack and not in reg");
+    }
+}
+
+void Codegen::sitofp(Value *dest, Value *ival) {
+    auto consti = dynamic_cast<ConstantInt *>(ival);
+    Reg ireg;
+    if (consti) {
+        ireg = get_temp();
+        assign(ireg, ival);
+    } else if (reg_mapping.contains(ival)) {
+        ireg = reg_mapping[ival];
+    } else if (stack_mapping.contains(ival)) {
+        // TODO
+    }
+    if (reg_mapping.contains(dest)) {
+        ss << ig.fcvtsw(reg_mapping[dest], ireg);
+    } else if (stack_mapping.contains(dest)) {
+        // TODO
+    } else
+        throw std::runtime_error("not in stack and not in reg");
 }
