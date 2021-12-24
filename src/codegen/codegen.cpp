@@ -72,11 +72,110 @@ void Codegen::gen_bb(BasicBlock *bb) {
         case Instruction::OpID::sitofp:
             sitofp(instr, instr->get_operand(0));
             break;
+        case Instruction::OpID::cmp:
+            icmp(dynamic_cast<CmpInst *>(instr), instr->get_operand(0), instr->get_operand(1));
+            break;
+        case Instruction::OpID::fcmp:
+            fcmp(dynamic_cast<FCmpInst *>(instr), instr->get_operand(0), instr->get_operand(1));
+            break;
+        case Instruction::OpID::zext:
+            sext(instr, instr->get_operand(0));
+            break;
         default: throw std::runtime_error(instr->get_instr_op_name() + " not implemented!");
         }
     }
 }
 
+void Codegen::sext(Value *dest, Value *src) {
+    if (reg_mapping.contains(dest)) {
+        auto dest_reg = reg_mapping[dest];
+        free_regs.erase(dest_reg);
+        assign(dest_reg, src);
+        ss << ig.andi(dest_reg, dest_reg, 0xff);
+        ss << ig.sextw(dest_reg, dest_reg);
+        fresh[dest_reg] = true;
+    } else {
+        throw std::runtime_error("sext stack");
+    }
+}
+
+void Codegen::icmp(CmpInst *dest, Value *lhs, Value *rhs) {
+    auto op = dest->get_cmp_op();
+    if (reg_mapping.contains(dest)) {
+        auto dest_reg = reg_mapping[dest];
+        free_regs.erase(dest_reg);
+        assign(dest_reg, lhs);
+        auto rhs_reg = reg_mapping.contains(rhs) ? reg_mapping[rhs] : get_temp();
+        assign(rhs_reg, rhs);
+        switch (op) {
+        case CmpInst::CmpOp::EQ:
+            ss << ig.sub(dest_reg, dest_reg, rhs_reg);
+            ss << ig.seqz(dest_reg, dest_reg);
+            break;
+        case CmpInst::CmpOp::GE:
+            ss << ig.slt(dest_reg, dest_reg, rhs_reg);
+            ss << ig.xori(dest_reg, dest_reg, 1);
+            break;
+        case CmpInst::CmpOp::GT:
+            ss << ig.sgt(dest_reg, dest_reg, rhs_reg);
+            break;
+        case CmpInst::CmpOp::LE:
+            ss << ig.sgt(dest_reg, dest_reg, rhs_reg);
+            ss << ig.xori(dest_reg, dest_reg, 1);
+            break;
+        case CmpInst::CmpOp::LT:
+            ss << ig.slt(dest_reg, dest_reg, rhs_reg);
+            break;
+        case CmpInst::CmpOp::NE:
+            ss << ig.sub(dest_reg, dest_reg, rhs_reg);
+            ss << ig.snez(dest_reg, dest_reg);
+            break;
+        }
+        fresh[dest_reg] = true;
+    } else
+        throw std::runtime_error("stack mapping icmp");
+}
+
+void Codegen::fcmp(FCmpInst *dest, Value *lhs, Value *rhs) {
+    auto op = dest->get_cmp_op();
+    if (reg_mapping.contains(dest)) {
+        auto dest_reg = reg_mapping[dest];
+        free_regs.erase(dest_reg);
+        auto lhs_reg = reg_mapping.contains(lhs) ? reg_mapping[lhs] : get_temp(true);
+        assign(lhs_reg, lhs);
+        free_regs.erase(lhs_reg);
+        auto rhs_reg = reg_mapping.contains(rhs) ? reg_mapping[rhs] : get_temp(true);
+        assign(rhs_reg, rhs);
+        free_regs.insert(lhs_reg);
+        switch (op) {
+        case FCmpInst::CmpOp::EQ:
+            ss << ig.feqs(dest_reg, lhs_reg, rhs_reg);
+            ss << ig.snez(dest_reg, dest_reg);
+            break;
+        case FCmpInst::CmpOp::GE:
+            ss << ig.fges(dest_reg, lhs_reg, rhs_reg);
+            ss << ig.snez(dest_reg, dest_reg);
+            break;
+        case FCmpInst::CmpOp::GT:
+            ss << ig.fgts(dest_reg, lhs_reg, rhs_reg);
+            ss << ig.snez(dest_reg, dest_reg);
+            break;
+        case FCmpInst::CmpOp::LE:
+            ss << ig.fles(dest_reg, lhs_reg, rhs_reg);
+            ss << ig.snez(dest_reg, dest_reg);
+            break;
+        case FCmpInst::CmpOp::LT:
+            ss << ig.flts(dest_reg, lhs_reg, rhs_reg);
+            ss << ig.snez(dest_reg, dest_reg);
+            break;
+        case FCmpInst::CmpOp::NE:
+            ss << ig.feqs(dest_reg, lhs_reg, rhs_reg);
+            ss << ig.seqz(dest_reg, dest_reg);
+            break;
+        }
+        fresh[dest_reg] = true;
+    } else throw std::runtime_error("fcmp stack");
+}
 void Codegen::bin_inst_imm(BinaryInst *dest, Instruction::OpID op, Value *val, Constant *imm, bool f) {
     comment("immediate");
     auto constint = dynamic_cast<ConstantInt *>(imm);
@@ -95,8 +194,10 @@ void Codegen::bin_inst_imm(BinaryInst *dest, Instruction::OpID op, Value *val, C
         default:
             break;
         }
+        fresh[dest_reg] = true;
     } else {
         // TODO stack
+        throw std::runtime_error("bin imm inst: stack");
     }
 }
 
@@ -107,10 +208,10 @@ void Codegen::bin_inst(BinaryInst *dest, Instruction::OpID op, bool f) {
     auto rhs_const = dynamic_cast<ConstantInt *>(rhs_val);
     // if one is constant, use immediate
     if (!f && (op == Instruction::OpID::add || op == Instruction::OpID::sub)) { // can't be float
-        if (rhs_const && rhs_const->get_value() < (1 << 11)) {
+        if (rhs_const && rhs_const->get_value() >= IMM_MIN && rhs_const->get_value() <= IMM_MAX) {
             bin_inst_imm(dest, op, lhs_val, rhs_const, f);
             return;
-        } else if (lhs_const && lhs_const->get_value() < (1 << 11) && // 减法(non-abelian!?*^&(O&))不可
+        } else if (lhs_const && lhs_const->get_value() >= IMM_MIN && lhs_const->get_value() <= IMM_MAX && // 减法(non-abelian!?*^&(O&))不可
                    op != Instruction::OpID::sub) {
             bin_inst_imm(dest, op, rhs_val, lhs_const, f);
             return;
@@ -142,8 +243,10 @@ void Codegen::bin_inst(BinaryInst *dest, Instruction::OpID op, bool f) {
             default:
                 break;
             }
+            fresh[dest_reg] = true;
         } else if (stack_mapping.contains(dest)) {
             // TODO
+            throw std::runtime_error("bin inst integer: stack");
         }
     } else {
         comment("binary instruction with floats");
@@ -164,7 +267,9 @@ void Codegen::bin_inst(BinaryInst *dest, Instruction::OpID op, bool f) {
             default:
                 break;
             }
+            fresh[dest_reg] = true;
         } else if (stack_mapping.contains(dest)) {
+            throw std::runtime_error("bin inst float: stack");
         }
     }
 }
@@ -279,20 +384,29 @@ void Codegen::assign(Reg dst, Value *v) {
     if (v->get_name().empty()) { // constant (i suppose)
         auto i = dynamic_cast<ConstantInt *>(v);
         auto f = dynamic_cast<ConstantFP *>(v);
-        if (i) // FIXME: 立即数就12(11)位！
+        if (i && i->get_value() >= IMM_MIN && i->get_value() <= IMM_MAX)
             ss << ig.addi(dst, zero, i->get_value());
-        else if (f) {
+        else if (i) {
+            int32_t val = i->get_value();
+            int32_t upper12 = val >> 12;
+            int32_t imm = val & 0b111111111111;
+            if (imm >> 11) {
+                upper12++;
+                imm = imm - 4096;
+            }
+            ss << ig.lui(dst, upper12);
+            ss << ig.addi(dst, dst, imm);
+        } else if (f) {
             local_floats.push_back(f->get_value());
             Reg temp = get_temp();
             ss << ig.lla(temp, ".LC" + std::to_string(local_floats.size() - 1));
             ss << ig.flw(dst, 0, temp);
         }
     } else if (reg_mapping.contains(v)) {
-        // TODO
         auto src_reg = reg_mapping[v];
         if (dst.f) {
             if (fresh[src_reg])
-                ss << ig.fmvs(dst, src_reg); // TODO add a fmv
+                ss << ig.fmvs(dst, src_reg);
             else
                 ss << ig.flw(dst, s0_offset[src_reg], s0);
         } else {
@@ -345,7 +459,10 @@ void Codegen::fptosi(Value *dest, Value *fval) {
     }
 
     if (reg_mapping.contains(dest)) {
-        ss << ig.fcvtws(reg_mapping[dest], freg);
+        auto dest_reg = reg_mapping[dest];
+        ss << ig.fcvtws(dest_reg, freg);
+        fresh[dest_reg] = true;
+        free_regs.erase(dest_reg);
     } else if (stack_mapping.contains(dest)) {
         // TODO
     } else {
@@ -365,7 +482,10 @@ void Codegen::sitofp(Value *dest, Value *ival) {
         // TODO
     }
     if (reg_mapping.contains(dest)) {
-        ss << ig.fcvtsw(reg_mapping[dest], ireg);
+        auto dest_reg = reg_mapping[dest];
+        ss << ig.fcvtsw(dest_reg, ireg);
+        fresh[dest_reg] = true;
+        free_regs.erase(dest_reg);
     } else if (stack_mapping.contains(dest)) {
         // TODO
     } else

@@ -18,7 +18,10 @@ using namespace std::literals::string_literals;
 
 class Codegen {
 private:
-    size_t XLEN = 64;
+    const size_t XLEN = 64;
+    const size_t IMM_LEN = 12;
+    const int IMM_MAX = (1 << 11) - 1;  // 0b011111111111;
+    const int IMM_MIN = -(1 << 11);     // 0b100000000000;
     Module *m;    // top
     Function *f_; // current function
     RegAlloc regalloc;
@@ -63,5 +66,8 @@ public:
     void bin_inst_imm(BinaryInst*, Instruction::OpID, Value*, Constant*, bool f = false);
     void fptosi(Value*, Value*);
     void sitofp(Value*, Value*);
+    void icmp(CmpInst*, Value*, Value*);
+    void fcmp(FCmpInst*, Value*, Value*);
+    void sext(Value*, Value*);
 };
 #endif
