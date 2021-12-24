@@ -116,3 +116,68 @@ std::string Instgen::fsubs(Reg dst, Reg rs1, Reg rs2) {
     assert(dst.f && rs1.f && rs2.f);
     return "\tfsub.s " + dst.get_name() + "," + rs1.get_name() + "," + rs2.get_name() + "\n";
 }
+
+std::string Instgen::lui(Reg dst, int imm) {
+    assert(!dst.f);
+    return "\tlui " + dst.get_name() + "," + std::to_string(imm) + "\n";
+}
+
+std::string Instgen::seqz(Reg dst, Reg src) {
+    assert(!dst.f && !src.f);
+    return "\tseqz " + dst.get_name() + "," + src.get_name() + "\n";
+}
+
+std::string Instgen::snez(Reg dst, Reg src) {
+    assert(!dst.f && !src.f);
+    return "\tsnez " + dst.get_name() + "," + src.get_name() + "\n";
+}
+
+std::string Instgen::slt(Reg dst, Reg rs1, Reg rs2) {
+    assert(!dst.f && !rs1.f && !rs2.f);
+    return "\tslt " + dst.get_name() + "," + rs1.get_name() + "," + rs2.get_name() + "\n";
+}
+
+std::string Instgen::xori(Reg dst, Reg src, int imm) {
+    assert(!dst.f && !src.f);
+    return "\txori " + dst.get_name() + "," + src.get_name() + "," + std::to_string(imm) + "\n";
+}
+
+std::string Instgen::sgt(Reg dst, Reg rs1, Reg rs2) {
+    assert(!dst.f && !rs1.f && !rs2.f);
+    return "\tsgt " + dst.get_name() + "," + rs1.get_name() + "," + rs2.get_name() + "\n";
+}
+
+std::string Instgen::sextw(Reg dst, Reg src) {
+    assert(!dst.f && !src.f);
+    return "\tsext.w " + dst.get_name() + "," + src.get_name() + "\n";
+}
+
+std::string Instgen::andi(Reg dst, Reg src, int imm) {
+    assert(!dst.f && !src.f);
+    return "\tandi " + dst.get_name() + "," + src.get_name() + "," + std::to_string(imm) + "\n";
+}
+
+std::string Instgen::feqs(Reg dst, Reg rs1, Reg rs2) {
+    assert(!dst.f && rs1.f && rs2.f);
+    return "\tfeq.s " + dst.get_name() + "," + rs1.get_name() + "," + rs2.get_name() + "\n";
+}
+
+std::string Instgen::flts(Reg dst, Reg rs1, Reg rs2) {
+    assert(!dst.f && rs1.f && rs2.f);
+    return "\tflt.s " + dst.get_name() + "," + rs1.get_name() + "," + rs2.get_name() + "\n";
+}
+
+std::string Instgen::fgts(Reg dst, Reg rs1, Reg rs2) {
+    assert(!dst.f && rs1.f && rs2.f);
+    return "\tfgt.s " + dst.get_name() + "," + rs1.get_name() + "," + rs2.get_name() + "\n";
+}
+
+std::string Instgen::fges(Reg dst, Reg rs1, Reg rs2) {
+    assert(!dst.f && rs1.f && rs2.f);
+    return "\tfge.s " + dst.get_name() + "," + rs1.get_name() + "," + rs2.get_name() + "\n";
+}
+
+std::string Instgen::fles(Reg dst, Reg rs1, Reg rs2) {
+    assert(!dst.f && rs1.f && rs2.f);
+    return "\tfle.s " + dst.get_name() + "," + rs1.get_name() + "," + rs2.get_name() + "\n";
+}

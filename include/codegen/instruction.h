@@ -27,6 +27,7 @@ public:
     std::string add(Reg, Reg, Reg);
     std::string fadds(Reg, Reg, Reg);
     std::string addi(Reg, Reg, int);
+    std::string lui(Reg, int);
     std::string sub(Reg, Reg, Reg);
     std::string subi(Reg, Reg, int);
     std::string fsubs(Reg, Reg, Reg);
@@ -36,5 +37,17 @@ public:
     std::string fdivs(Reg, Reg, Reg);
     std::string fcvtsw(Reg, Reg);
     std::string fcvtws(Reg, Reg);
+    std::string seqz(Reg, Reg);
+    std::string snez(Reg, Reg);
+    std::string slt(Reg, Reg, Reg);
+    std::string sgt(Reg, Reg, Reg);
+    std::string xori(Reg, Reg, int);
+    std::string sextw(Reg, Reg);
+    std::string andi(Reg, Reg, int);
+    std::string feqs(Reg, Reg, Reg);
+    std::string flts(Reg, Reg, Reg);
+    std::string fgts(Reg, Reg, Reg);
+    std::string fges(Reg, Reg, Reg);
+    std::string fles(Reg, Reg, Reg);
 };
 #endif
