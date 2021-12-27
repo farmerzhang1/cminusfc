@@ -78,6 +78,7 @@ std::string ConstantFP::print()
     std::string fp_ir;
     double val = this->get_value();
     fp_ir_ss << "0x"<< std::hex << *(uint64_t *)&val << std::endl;
+    // std::cout << "0d" << std::dec << *(uint64_t *)&val << std::endl;
     fp_ir_ss >> fp_ir;
     return fp_ir;
 }
