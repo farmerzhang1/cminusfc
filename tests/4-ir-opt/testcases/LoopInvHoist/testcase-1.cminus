@@ -1,20 +1,21 @@
 void main(void){
     int i;
-    int j;
     int ret;
-
-    i = 1;
+    int a;
+    int b;
+    int c;
     
-    while(i<10000)
+    a=20401;
+    b=32303;
+    c=23956;
+    i=0;
+    while(i<100000000)
     {
-        j = 0;
-        while(j<10000)
-        {
-            ret = (i*i*i*i*i*i*i*i*i*i)/i/i/i/i/i/i/i/i/i/i;
-            j=j+1;
-        }
+        ret=a+b+c;
+        ret = ret*1.23456*5.73478*2.3333*4.3673*6.34636;
         i=i+1;
     }
-	output(ret);
+
+    output(ret);
     return ;
 }
