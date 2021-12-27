@@ -25,9 +25,10 @@ void RegAlloc::run() {
         init_func();
         pre_allocate_args();
         LinearScanRegisterAllocation();
-        // print_stats();
+        print_stats();
         f_reg_map.insert({f, std::move(reg_mappings)});
         f_stack_map.insert({f, std::move(stack_mappings)});
+        f_stack_size.insert({f, stack_size});
     }
 }
 
@@ -72,6 +73,7 @@ void RegAlloc::init_func() {
     int i{0};
     reg_mappings.clear();
     stack_mappings.clear();
+    stack_size = f_->has_fcalls() ? 16 : 8;
     val2interval.clear();
     active.clear();
     intervals.clear();
@@ -96,7 +98,13 @@ void RegAlloc::init_func() {
         instr_counter = 0;
         for (auto instr : bb->get_instructions()) {
             instr_counter++;
-            if (instr->is_alloca()) continue; // alloca 的返回值（指针）已经在栈上了，不需要（没必要？）分配寄存器
+            if (instr->is_alloca()) { // alloca 的返回值（指针）已经在栈上了，不需要（没必要？）分配寄存器
+                auto alloca = dynamic_cast<AllocaInst*>(instr);
+                auto size = alloca->get_alloca_type()->get_size();
+                stack_size += size;
+                stack_mappings[instr] = -stack_size;
+                continue;
+            }
             point srcloc(bbcounter, instr_counter);
             if (!instr->get_name().empty()) {
                 val2interval.insert({instr, std::make_shared<interval>(instr, srcloc, srcloc)});
@@ -131,13 +139,15 @@ void RegAlloc::SpillAtInterval(ip &i) {
     auto &spill = *active.rbegin(); // 要待最久的变量 spill 掉
     if (i->end < spill->end) {
         reg_mappings[i->val] = reg_mappings[spill->val];
-        stack_mappings[spill->val] = spill->val->get_type()->get_size();
-        stack_size += spill->val->get_type()->get_size();
+        auto spill_size = spill->val->get_type()->get_size();
+        stack_size += spill_size;
+        stack_mappings[spill->val] = -spill_size;
         active.erase(spill);
         active.insert(i);
     } else {
-        stack_mappings[i->val] = i->val->get_type()->get_size();
-        stack_size += i->val->get_type()->get_size();
+        auto isize = i->val->get_type()->get_size();
+        stack_size += isize;
+        stack_mappings[i->val] = -isize;
     }
 }
 
@@ -146,7 +156,7 @@ void RegAlloc::assign_reg(ip &i) {
     assert(!reg_mappings.contains(i->val));
     Reg r;
     for (auto avai : available_regs) {
-        if (avai.f ^ i->val->get_type()->is_integer_type()) {
+        if (avai.f == i->val->get_type()->is_float_type()) {
             r = avai;
             break;
         }

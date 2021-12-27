@@ -81,8 +81,59 @@ void Codegen::gen_bb(BasicBlock *bb) {
         case Instruction::OpID::zext:
             sext(instr, instr->get_operand(0));
             break;
+        case Instruction::OpID::br:
+            branch(dynamic_cast<BranchInst *>(instr));
+            break;
+        case Instruction::OpID::getelementptr:
+            gep(dynamic_cast<GetElementPtrInst *>(instr));
+            break;
+        case Instruction::OpID::store:
+            store(instr, instr->get_operand(0));
         default: throw std::runtime_error(instr->get_instr_op_name() + " not implemented!");
         }
+    }
+}
+
+void Codegen::store(Value *dest, Value *src) {
+    if (stack_mapping.contains(dest)) {
+        auto src_reg = reg_mapping.contains(src) ? reg_mapping[src] : get_temp();
+        ss << ig.sw(src_reg, stack_mapping[dest], s0);
+    } else {
+        throw std::runtime_error("");
+    }
+}
+
+void Codegen::gep(GetElementPtrInst *dest) {
+    // 要优美！ ()
+    auto index = dest->get_operand(dest->get_num_operand() - 1);
+    auto const_int = dynamic_cast<ConstantInt *>(index);
+    if (const_int) return; // 如果index是常数，在store中处理(ld/sd的base寄存器为s0)
+    auto ptr = dest->get_operand(0);
+    if (reg_mapping.contains(ptr)) {
+        // probably allocated in arguments ?
+    } else if (stack_mapping.contains(ptr)) {
+        // if we use pointers (e.g. int*****), this does not work
+        if (reg_mapping.contains(dest)) {
+            throw std::runtime_error("variable index TODO");
+        } else {
+            throw std::runtime_error("stack mapped dest in gep");
+        }
+    }
+}
+
+void Codegen::branch(BranchInst *branch) {
+    if (branch->is_cond_br()) {
+        auto cond = branch->get_operand(0);
+        auto trueBB = branch->get_operand(1);
+        auto falseBB = branch->get_operand(2);
+        if (reg_mapping.contains(cond)) {
+            ss << ig.bnez(reg_mapping[cond], trueBB->get_name());
+            ss << ig.j(falseBB->get_name());
+        } else
+            throw std::runtime_error("branch cond stack");
+    } else {
+        auto unconditional = branch->get_operand(0);
+        ss << ig.j(unconditional->get_name());
     }
 }
 
@@ -174,7 +225,8 @@ void Codegen::fcmp(FCmpInst *dest, Value *lhs, Value *rhs) {
             break;
         }
         fresh[dest_reg] = true;
-    } else throw std::runtime_error("fcmp stack");
+    } else
+        throw std::runtime_error("fcmp stack");
 }
 void Codegen::bin_inst_imm(BinaryInst *dest, Instruction::OpID op, Value *val, Constant *imm, bool f) {
     comment("immediate");
@@ -245,7 +297,6 @@ void Codegen::bin_inst(BinaryInst *dest, Instruction::OpID op, bool f) {
             }
             fresh[dest_reg] = true;
         } else if (stack_mapping.contains(dest)) {
-            // TODO
             throw std::runtime_error("bin inst integer: stack");
         }
     } else {
@@ -301,37 +352,18 @@ void Codegen::fun_epilogue(Function *f) {
 }
 
 void Codegen::allocate_stack() {
-    int deepest{0};
+    // TODO: check StackGuard
+    // (url: https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/cowan/cowan.pdf)
     s0_offset.clear();
-    stack_size = f_->has_fcalls() ? 16 : 8;
-    // TODO: calculate stack size here, not in register allocation phase
-    // 这写的是真的丑(
-    for (auto &[_, v] : stack_mapping) {
-        deepest = std::max(deepest, v);
-        v += stack_size;
-    }
-    for (auto bb : f_->get_basic_blocks()) {
-        for (auto instr : bb->get_instructions()) {
-            if (instr->is_alloca()) {
-                // TODO
-                auto alloca = dynamic_cast<AllocaInst *>(instr);
-                auto s = alloca->get_alloca_type()->get_size();
-                auto [_, success] = alloca_offset.insert({instr, s});
-                assert(success); // 无聊就加点assert~
-                stack_size += s;
-            }
-        }
-    }
+    stack_size = regalloc.f_stack_size[f_];
     if (f_->has_fcalls()) {
-        int current_offset = -20;
         for (auto &[v, r] : reg_mapping)
             if (caller_saved_regs.contains(r)) {
-                s0_offset[r] = current_offset;
-                current_offset -= v->get_type()->get_size();
-                stack_size += v->get_type()->get_size();
+                auto size = v->get_type()->get_size() < 4 ? 4 : v->get_type()->get_size();
+                stack_size += size;
+                s0_offset[r] = -stack_size;
             }
     }
-    stack_size += deepest;
 }
 
 void Codegen::comment(std::string s) {
@@ -363,19 +395,10 @@ void Codegen::call(CallInst *c) {
             in_use.insert(r);
             fresh[r] = true;
         } else if (stack_mapping.contains(c))
-            ss << ig.sw(a0, stack_mapping[c], sp); // TODO: check base register (sp, or s0?)
+            ss << ig.sw(a0, stack_mapping[c], sp); // TODO: change to s0
         else
             // can we add static_assert ? (i guess not)
             throw std::runtime_error("why is this call not (in register or in stack)?");
-    }
-}
-
-void Codegen::alloca(Instruction *inst) {
-    if (reg_mapping.contains(inst)) {
-        // ss << ig.ld(reg_mapping[inst], alloca_offset[inst], sp);
-    } else if (stack_mapping.contains(inst)) {
-        // TODO
-        // do nothing because it's already on stack??
     }
 }
 
@@ -416,7 +439,7 @@ void Codegen::assign(Reg dst, Value *v) {
                 ss << ig.lw(dst, s0_offset[src_reg], s0);
         }
     } else if (stack_mapping.contains(v)) {
-        // TODO
+        throw std::runtime_error("stack assign value");
     }
 }
 
@@ -455,7 +478,7 @@ void Codegen::fptosi(Value *dest, Value *fval) {
         freg = reg_mapping[fval];
         // assign(freg, fval);
     } else if (stack_mapping.contains(fval)) {
-        // TODO
+        throw std::runtime_error("fptosi stack");
     }
 
     if (reg_mapping.contains(dest)) {
@@ -464,7 +487,7 @@ void Codegen::fptosi(Value *dest, Value *fval) {
         fresh[dest_reg] = true;
         free_regs.erase(dest_reg);
     } else if (stack_mapping.contains(dest)) {
-        // TODO
+        throw std::runtime_error("fptosi stack");
     } else {
         throw std::runtime_error("not in stack and not in reg");
     }
@@ -479,7 +502,7 @@ void Codegen::sitofp(Value *dest, Value *ival) {
     } else if (reg_mapping.contains(ival)) {
         ireg = reg_mapping[ival];
     } else if (stack_mapping.contains(ival)) {
-        // TODO
+        throw std::runtime_error("sitofp stack");
     }
     if (reg_mapping.contains(dest)) {
         auto dest_reg = reg_mapping[dest];
@@ -487,7 +510,7 @@ void Codegen::sitofp(Value *dest, Value *ival) {
         fresh[dest_reg] = true;
         free_regs.erase(dest_reg);
     } else if (stack_mapping.contains(dest)) {
-        // TODO
+        throw std::runtime_error("sitofp stack");
     } else
         throw std::runtime_error("not in stack and not in reg");
 }

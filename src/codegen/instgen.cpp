@@ -181,3 +181,12 @@ std::string Instgen::fles(Reg dst, Reg rs1, Reg rs2) {
     assert(!dst.f && rs1.f && rs2.f);
     return "\tfle.s " + dst.get_name() + "," + rs1.get_name() + "," + rs2.get_name() + "\n";
 }
+
+std::string Instgen::bnez(Reg cond, std::string label) {
+    assert (!cond.f);
+    return "\tbnez " + cond.get_name() + "," + label + "\n";
+}
+
+std::string Instgen::j(std::string label) {
+    return "\tj " + label + "\n";
+}

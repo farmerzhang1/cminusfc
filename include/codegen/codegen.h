@@ -31,15 +31,12 @@ private:
     std::map<Value *, int> stack_mapping;
     std::map<Reg, int> s0_offset; // offset(s0), offset is negative (cr. riscv64-linux-gnu-gcc -S)
     std::map<Instruction*, int> alloca_offset;
-    // TODO: move out all these registers to reg.h
-    // const std::array<Reg, 8> args{Reg(10), Reg(11), Reg(12), Reg(13), Reg(14), Reg(15), Reg(16), Reg(17)};
-    // const std::array<Reg, 8> fargs{Reg(10, true), Reg(11, true), Reg(12, true), Reg(13, true), Reg(14, true), Reg(15, true), Reg(16, true), Reg(17, true)};
     // TODO: so much?
     const std::set<Reg> caller_saved_regs {Reg(1), Reg(5), Reg(6), Reg(7), Reg(10), Reg(11), Reg(12), Reg(13), Reg(14), Reg(15), Reg(16), Reg(17), Reg(28), Reg(29), Reg(30), Reg(31),
         // TODO: add full f caller saved regs
         Reg(10, true), Reg(11, true), Reg(12, true), Reg(13, true), Reg(14, true), Reg(15, true), Reg(16, true), Reg(17, true)};
     const std::set<Reg> callee_saved_regs {Reg(2)};
-    std::set<Reg> free_regs;
+    std::set<Reg> free_regs; // 对于 free registers，生成riscv64代码的过程中才会逐渐减少 ()
     std::set<Reg> in_use; // all allocated registers until now (current instruction)
     std::map<Reg, bool> fresh;
     size_t fcounter{0};
@@ -58,7 +55,6 @@ public:
     void comment(std::string);
     void allocate_stack();
     void call(CallInst *);
-    void alloca(Instruction *);
     void assign(Reg, Value *);
     void gen_local_constants();
     void push_caller_saved_regs();
@@ -69,5 +65,8 @@ public:
     void icmp(CmpInst*, Value*, Value*);
     void fcmp(FCmpInst*, Value*, Value*);
     void sext(Value*, Value*);
+    void branch(BranchInst*);
+    void gep(GetElementPtrInst*);
+    void store(Value*, Value*);
 };
 #endif

@@ -49,5 +49,7 @@ public:
     std::string fgts(Reg, Reg, Reg);
     std::string fges(Reg, Reg, Reg);
     std::string fles(Reg, Reg, Reg);
+    std::string j(std::string);
+    std::string bnez(Reg, std::string);
 };
 #endif

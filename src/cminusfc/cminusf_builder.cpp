@@ -292,7 +292,7 @@ void CminusfBuilder::visit(ASTVar &node)
         builder->set_insert_point(t);
         if (ptr->get_type()->get_pointer_element_type()->is_array_type())
         {
-            ptr = builder->create_gep(ptr, {CONST_INT(0), offset});
+            ptr = builder->create_gep(ptr, {CONST_INT(0), offset}); // only the last element is valid
         }
         else if (ptr->get_type()->get_pointer_element_type()->is_pointer_type())
         {

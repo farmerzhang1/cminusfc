@@ -137,19 +137,22 @@ int main(int argc, char **argv) {
     output_stream.open(output_asm, std::ios::out);
     output_stream << cg.gen_module();
     output_stream.close();
-    if (!emit) {
-        std::string lib = CMAKE_LIBRARY_OUTPUT_DIRECTORY;
-        auto command_string = "clang -O0 -w "s + target_path + ".ll -o "
-                              + target_path + " -L" + lib + " -lcminus_io";
-        std::cout << command_string << std::endl;
-        int re_code0 = std::system(command_string.c_str());
-        command_string = "rm "s + target_path + ".ll";
-        int re_code1 = std::system(command_string.c_str());
-        if (re_code0 == 0 && re_code1 == 0)
-            return 0;
-        else
-            return 1;
-    }
+    auto rv64_command = "riscv64-linux-gnu-gcc " + output_asm + " " + CMAKE_LIBRARY_OUTPUT_DIRECTORY + "/io.o -o " + target_path;
+    // std::cout << rv64_command << std::endl;
+    std::system(rv64_command.c_str());
+    // if (!emit) {
+    //     std::string lib = CMAKE_LIBRARY_OUTPUT_DIRECTORY;
+    //     auto command_string = "clang -O0 -w "s + target_path + ".ll -o "
+    //                           + target_path + " -L" + lib + " -lcminus_io";
+    //     std::cout << command_string << std::endl;
+    //     int re_code0 = std::system(command_string.c_str());
+    //     command_string = "rm "s + target_path + ".ll";
+    //     int re_code1 = std::system(command_string.c_str());
+    //     if (re_code0 == 0 && re_code1 == 0)
+    //         return 0;
+    //     else
+    //         return 1;
+    // }
 
     return 0;
 }

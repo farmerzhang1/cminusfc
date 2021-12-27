@@ -16,7 +16,6 @@ class Codegen;
 
 class RegAlloc {
 private:
-    // TODO: 研究一下别人怎么表示的
     struct point {
         int bbindex;
         int line_no;
@@ -56,6 +55,7 @@ private:
     std::map<Value *, int> stack_mappings;
     std::map<Function*, std::map<Value *, Reg>> f_reg_map;
     std::map<Function*, std::map<Value *, int>> f_stack_map;
+    std::map<Function*, int> f_stack_size;
 
     struct ActiveLess {
         const bool operator()(const ip &l, const ip &r) const {
