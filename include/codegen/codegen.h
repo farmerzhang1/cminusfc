@@ -68,5 +68,6 @@ public:
     void branch(BranchInst*);
     void gep(GetElementPtrInst*);
     void store(Value*, Value*);
+    void load(LoadInst*, Value*);
 };
 #endif

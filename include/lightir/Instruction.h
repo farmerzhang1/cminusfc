@@ -8,11 +8,9 @@
 class BasicBlock;
 class Function;
 
-class Instruction : public User
-{
+class Instruction : public User {
 public:
-    enum OpID
-    {
+    enum OpID {
         // Terminator Instructions
         ret,
         br,
@@ -56,35 +54,32 @@ public:
 
     OpID get_instr_type() { return op_id_; }
     std::string get_instr_op_name() {
-        switch (op_id_)
-        {
-            case ret: return "ret"; break;
-            case br: return "br"; break;
-            case add: return "add"; break;
-            case sub: return "sub"; break;
-            case mul: return "mul"; break;
-            case sdiv: return "sdiv"; break;
-            case fadd: return "fadd"; break;
-            case fsub: return "fsub"; break;
-            case fmul: return "fmul"; break;
-            case fdiv: return "fdiv"; break;
-            case alloca: return "alloca"; break;
-            case load: return "load"; break;
-            case store: return "store"; break;
-            case cmp: return "cmp"; break;
-            case fcmp: return "fcmp"; break;
-            case phi: return "phi"; break;
-            case call: return "call"; break;
-            case getelementptr: return "getelementptr"; break;
-            case zext: return "zext"; break;
-            case fptosi: return "fptosi"; break;
-            case sitofp: return "sitofp"; break;
+        switch (op_id_) {
+        case ret: return "ret"; break;
+        case br: return "br"; break;
+        case add: return "add"; break;
+        case sub: return "sub"; break;
+        case mul: return "mul"; break;
+        case sdiv: return "sdiv"; break;
+        case fadd: return "fadd"; break;
+        case fsub: return "fsub"; break;
+        case fmul: return "fmul"; break;
+        case fdiv: return "fdiv"; break;
+        case alloca: return "alloca"; break;
+        case load: return "load"; break;
+        case store: return "store"; break;
+        case cmp: return "cmp"; break;
+        case fcmp: return "fcmp"; break;
+        case phi: return "phi"; break;
+        case call: return "call"; break;
+        case getelementptr: return "getelementptr"; break;
+        case zext: return "zext"; break;
+        case fptosi: return "fptosi"; break;
+        case sitofp: return "sitofp"; break;
 
         default: return ""; break;
         }
     }
-
-
 
     bool is_void() { return ((op_id_ == ret) || (op_id_ == br) || (op_id_ == store) || (op_id_ == call && this->get_type()->is_void_type())); }
 
@@ -100,7 +95,6 @@ public:
     bool is_mul() { return op_id_ == mul; }
     bool is_div() { return op_id_ == sdiv; }
 
-
     bool is_fadd() { return op_id_ == fadd; }
     bool is_fsub() { return op_id_ == fsub; }
     bool is_fmul() { return op_id_ == fmul; }
@@ -115,12 +109,8 @@ public:
     bool is_gep() { return op_id_ == getelementptr; }
     bool is_zext() { return op_id_ == zext; }
 
-
-    bool isBinary()
-    {
-        return (is_add() || is_sub() || is_mul() || is_div() ||
-                is_fadd() || is_fsub() || is_fmul() || is_fdiv()) &&
-               (get_num_operand() == 2);
+    bool isBinary() {
+        return (is_add() || is_sub() || is_mul() || is_div() || is_fadd() || is_fsub() || is_fmul() || is_fdiv()) && (get_num_operand() == 2);
     }
 
     bool isTerminator() { return is_br() || is_ret(); }
@@ -131,8 +121,7 @@ private:
     unsigned num_ops_;
 };
 
-class BinaryInst : public Instruction
-{
+class BinaryInst : public Instruction {
 private:
     BinaryInst(Type *ty, OpID id, Value *v1, Value *v2,
                BasicBlock *bb);
@@ -168,11 +157,9 @@ private:
     void assertValid();
 };
 
-class CmpInst : public Instruction
-{
+class CmpInst : public Instruction {
 public:
-    enum CmpOp
-    {
+    enum CmpOp {
         EQ, // ==
         NE, // !=
         GT, // >
@@ -199,11 +186,9 @@ private:
     void assertValid();
 };
 
-class FCmpInst : public Instruction
-{
+class FCmpInst : public Instruction {
 public:
-    enum CmpOp
-    {
+    enum CmpOp {
         EQ, // ==
         NE, // !=
         GT, // >
@@ -230,8 +215,7 @@ private:
     void assert_valid();
 };
 
-class CallInst : public Instruction
-{
+class CallInst : public Instruction {
 protected:
     CallInst(Function *func, std::vector<Value *> args, BasicBlock *bb);
 
@@ -242,8 +226,7 @@ public:
     virtual std::string print() override;
 };
 
-class BranchInst : public Instruction
-{
+class BranchInst : public Instruction {
 private:
     BranchInst(Value *cond, BasicBlock *if_true, BasicBlock *if_false,
                BasicBlock *bb);
@@ -259,8 +242,7 @@ public:
     virtual std::string print() override;
 };
 
-class ReturnInst : public Instruction
-{
+class ReturnInst : public Instruction {
 private:
     ReturnInst(Value *val, BasicBlock *bb);
     ReturnInst(BasicBlock *bb);
@@ -273,8 +255,7 @@ public:
     virtual std::string print() override;
 };
 
-class GetElementPtrInst : public Instruction
-{
+class GetElementPtrInst : public Instruction {
 private:
     GetElementPtrInst(Value *ptr, std::vector<Value *> idxs, BasicBlock *bb);
 
@@ -289,8 +270,7 @@ private:
     Type *element_ty_;
 };
 
-class StoreInst : public Instruction
-{
+class StoreInst : public Instruction {
 private:
     StoreInst(Value *val, Value *ptr, BasicBlock *bb);
 
@@ -299,12 +279,10 @@ public:
 
     Value *get_rval() { return this->get_operand(0); }
     Value *get_lval() { return this->get_operand(1); }
-
     virtual std::string print() override;
 };
 
-class LoadInst : public Instruction
-{
+class LoadInst : public Instruction {
 private:
     LoadInst(Type *ty, Value *ptr, BasicBlock *bb);
 
@@ -317,8 +295,7 @@ public:
     virtual std::string print() override;
 };
 
-class AllocaInst : public Instruction
-{
+class AllocaInst : public Instruction {
 private:
     AllocaInst(Type *ty, BasicBlock *bb);
 
@@ -333,8 +310,7 @@ private:
     Type *alloca_ty_;
 };
 
-class ZextInst : public Instruction
-{
+class ZextInst : public Instruction {
 private:
     ZextInst(OpID op, Value *val, Type *ty, BasicBlock *bb);
 
@@ -349,8 +325,7 @@ private:
     Type *dest_ty_;
 };
 
-class FpToSiInst : public Instruction
-{
+class FpToSiInst : public Instruction {
 private:
     FpToSiInst(OpID op, Value *val, Type *ty, BasicBlock *bb);
 
@@ -365,8 +340,7 @@ private:
     Type *dest_ty_;
 };
 
-class SiToFpInst : public Instruction
-{
+class SiToFpInst : public Instruction {
 private:
     SiToFpInst(OpID op, Value *val, Type *ty, BasicBlock *bb);
 
@@ -381,20 +355,18 @@ private:
     Type *dest_ty_;
 };
 
-class PhiInst : public Instruction
-{
+class PhiInst : public Instruction {
 private:
     PhiInst(OpID op, std::vector<Value *> vals, std::vector<BasicBlock *> val_bbs, Type *ty, BasicBlock *bb);
-    PhiInst(Type *ty, OpID op, unsigned num_ops, BasicBlock *bb)
-        : Instruction(ty, op, num_ops, bb) {}
+    PhiInst(Type *ty, OpID op, unsigned num_ops, BasicBlock *bb) :
+        Instruction(ty, op, num_ops, bb) {}
     Value *l_val_;
 
 public:
     static PhiInst *create_phi(Type *ty, BasicBlock *bb);
     Value *get_lval() { return l_val_; }
     void set_lval(Value *l_val) { l_val_ = l_val; }
-    void add_phi_pair_operand(Value *val, Value *pre_bb)
-    {
+    void add_phi_pair_operand(Value *val, Value *pre_bb) {
         this->add_operand(val);
         this->add_operand(pre_bb);
     }

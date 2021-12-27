@@ -48,6 +48,7 @@ void Codegen::gen_function(Function *f) {
 }
 
 void Codegen::gen_bb(BasicBlock *bb) {
+    ss << "." << bb->get_name() << ":" << std::endl;
     for (auto instr : bb->get_instructions()) {
         comment(instr->print());
         switch (instr->get_instr_type()) {
@@ -88,18 +89,64 @@ void Codegen::gen_bb(BasicBlock *bb) {
             gep(dynamic_cast<GetElementPtrInst *>(instr));
             break;
         case Instruction::OpID::store:
-            store(instr, instr->get_operand(0));
+            store(instr->get_operand(1), instr->get_operand(0));
+            break;
+        case Instruction::OpID::load:
+            load(dynamic_cast<LoadInst*>(instr), instr->get_operand(0));
+            break;
         default: throw std::runtime_error(instr->get_instr_op_name() + " not implemented!");
         }
     }
 }
 
-void Codegen::store(Value *dest, Value *src) {
-    if (stack_mapping.contains(dest)) {
-        auto src_reg = reg_mapping.contains(src) ? reg_mapping[src] : get_temp();
-        ss << ig.sw(src_reg, stack_mapping[dest], s0);
-    } else {
-        throw std::runtime_error("");
+void Codegen::load(LoadInst* instr, Value* ptr) {
+    int offset;
+    Value *base;
+    auto gep_ptr = dynamic_cast<GetElementPtrInst *>(ptr);
+    auto alloca_ptr = dynamic_cast<AllocaInst *>(ptr);
+    auto const_int = gep_ptr ? dynamic_cast<ConstantInt *>(gep_ptr->get_operand(gep_ptr->get_num_operand() - 1)) : nullptr;
+    if (const_int) {
+        base = gep_ptr->get_operand(0);
+        offset = const_int->get_value();
+    }
+    if (alloca_ptr) {
+        base = alloca_ptr;
+        offset = 0;
+    }
+    bool const_indexed = const_int || alloca_ptr;
+    if (const_indexed) {
+        if (stack_mapping.contains(base)) {
+            if (reg_mapping.contains(instr)) {
+                ss << ig.lw(reg_mapping[instr], offset * 4 + stack_mapping[base], s0);
+                fresh[reg_mapping[instr]] = true;
+            }
+        }
+    }
+}
+// lval is pointer
+void Codegen::store(Value *lval, Value *rval) {
+    // 如果指针是由常数indexed的，不考虑gep的翻译，直接跳到这
+    // auto ptr = lval->get_operand(lval->get_num_operand() - 1);
+    int offset;
+    Value *base;
+    auto gep_ptr = dynamic_cast<GetElementPtrInst *>(lval);
+    auto alloca_ptr = dynamic_cast<AllocaInst *>(lval);
+    auto const_int = gep_ptr ? dynamic_cast<ConstantInt *>(gep_ptr->get_operand(gep_ptr->get_num_operand() - 1)) : nullptr;
+    if (const_int) {
+        base = gep_ptr->get_operand(0);
+        offset = const_int->get_value();
+    }
+    if (alloca_ptr) {
+        base = alloca_ptr;
+        offset = 0;
+    }
+    bool const_indexed = const_int || alloca_ptr;
+    if (const_indexed) {
+        if (stack_mapping.contains(base)) {
+            auto rval_reg = reg_mapping.contains(rval) ? reg_mapping[rval] : get_temp();
+            assign(rval_reg, rval);
+            ss << ig.sw(rval_reg, stack_mapping[base] + 4 * offset, s0);
+        }
     }
 }
 

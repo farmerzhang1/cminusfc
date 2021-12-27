@@ -184,9 +184,9 @@ std::string Instgen::fles(Reg dst, Reg rs1, Reg rs2) {
 
 std::string Instgen::bnez(Reg cond, std::string label) {
     assert (!cond.f);
-    return "\tbnez " + cond.get_name() + "," + label + "\n";
+    return "\tbnez " + cond.get_name() + ", ." + label + "\n";
 }
 
 std::string Instgen::j(std::string label) {
-    return "\tj " + label + "\n";
+    return "\tj ." + label + "\n";
 }
