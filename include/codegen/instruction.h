@@ -52,5 +52,6 @@ public:
     std::string fles(Reg, Reg, Reg);
     std::string j(std::string);
     std::string bnez(Reg, std::string);
+    std::string slli(Reg, Reg, int);
 };
 #endif

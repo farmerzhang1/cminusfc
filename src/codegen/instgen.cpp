@@ -184,14 +184,19 @@ std::string Instgen::fles(Reg dst, Reg rs1, Reg rs2) {
 
 std::string Instgen::bnez(Reg cond, std::string label) {
     assert (!cond.f);
-    return "\tbnez " + cond.get_name() + ", ." + label + "\n";
+    return "\tbnez " + cond.get_name() + ", " + label + "\n";
 }
 
 std::string Instgen::j(std::string label) {
-    return "\tj ." + label + "\n";
+    return "\tj " + label + "\n";
 }
 
 std::string Instgen::la(Reg dst, std::string var) {
     assert(!dst.f);
     return "\tla " + dst.get_name() + ", " + var + "\n";
+}
+
+std::string Instgen::slli(Reg dst, Reg src, int n) {
+    assert(!dst.f && !src.f);
+    return "\tslli " + dst.get_name() + "," + src.get_name() + "," + std::to_string(n) + "\n";
 }
