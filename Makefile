@@ -6,5 +6,5 @@ rv64: test.c
 	riscv64-linux-gnu-gcc -S test.c
 bin: test.s
 	riscv64-linux-gnu-gcc -ggdb test.s build/io.o -o test
-emu: test
+emu: bin
 	qemu-riscv64  -L /usr/riscv64-linux-gnu/ ./test
