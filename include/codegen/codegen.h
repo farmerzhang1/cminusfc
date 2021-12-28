@@ -29,6 +29,7 @@ private:
     Instgen ig;
     std::map<Value *, Reg> reg_mapping;
     std::map<Value *, int> stack_mapping;
+    std::map<BasicBlock *, std::string> bbmap;
     std::map<Reg, int> s0_offset; // offset(s0), offset is negative (cr. riscv64-linux-gnu-gcc -S)
     std::map<Instruction*, int> alloca_offset;
     // TODO: so much?
@@ -40,7 +41,7 @@ private:
     std::set<Reg> free_regs; // 对于 free registers，生成riscv64代码的过程中才会逐渐减少 ()
     std::set<Reg> in_use; // all allocated registers until now (current instruction)
     std::map<Reg, bool> fresh;
-    size_t fcounter{0};
+    size_t fcounter{0}, bbcounter{0};
     std::vector<float> local_floats;
     int stack_size;
     const Reg sp, s0, ra, zero, a0;
