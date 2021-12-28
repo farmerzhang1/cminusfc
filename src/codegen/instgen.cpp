@@ -190,3 +190,8 @@ std::string Instgen::bnez(Reg cond, std::string label) {
 std::string Instgen::j(std::string label) {
     return "\tj ." + label + "\n";
 }
+
+std::string Instgen::la(Reg dst, std::string var) {
+    assert(!dst.f);
+    return "\tla " + dst.get_name() + ", " + var + "\n";
+}

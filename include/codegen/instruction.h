@@ -22,6 +22,7 @@ public:
     std::string call(std::string);
     std::string li (Reg, int);
     std::string lla(Reg, std::string);
+    std::string la(Reg, std::string);
     std::string mv(Reg, Reg);
     std::string fmvs(Reg, Reg);
     std::string add(Reg, Reg, Reg);

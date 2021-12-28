@@ -31,6 +31,8 @@ public:
         else
             throw std::runtime_error("invalid string names for reg");
     }
+    // check that regs are valid
+    explicit operator bool() const { return id != -1; }
 
     const bool operator<(const Reg &rhs) const { return this->id < rhs.id || (this->id == rhs.id && !this->f && rhs.f); }
     const bool operator==(const Reg &rhs) const { return this->id == rhs.id && this->f == rhs.f; }
