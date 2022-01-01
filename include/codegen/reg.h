@@ -15,11 +15,13 @@ private:
     int id;
     static const std::array<std::string, 32> regs;
     static const std::array<std::string, 32> alts;
+
 public:
     // need a constructor that takes no argument
     Reg(int id = -1, bool f = false) :
         id(id), f(f) {}
-    Reg(std::string s) : f(false) {
+    Reg(std::string s) :
+        f(false) {
         if (s == "sp"s)
             id = 2;
         else if (s == "ra"s)
@@ -28,7 +30,10 @@ public:
             id = 8;
         else if (s == "a0"s)
             id = 10;
-        else
+        else if (s == "fa0"s) {
+            id = 10;
+            f = true;
+        } else
             throw std::runtime_error("invalid string names for reg");
     }
     // check that regs are valid
