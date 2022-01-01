@@ -13,7 +13,8 @@
 using namespace std::literals::string_literals;
 
 Codegen::Codegen(Module *m) :
-    m(m), ig(), sp("sp"s), s0("s0"s), ra("ra"s), zero(0), a0("a0"s), regalloc(m) {
+    m(m), ig(), sp("sp"s), s0("s0"s), ra("ra"s), zero(0), fa0("fa0"s), a0("a0"s), regalloc(m), pe(m) {
+    pe.run();
     regalloc.run();
     // this is what a friend looks like: move your things!
     // stack_mapping = std::move(ra.stack_mappings);
@@ -108,6 +109,7 @@ void Codegen::gen_bb(BasicBlock *bb) {
 }
 
 void Codegen::save(Reg r) {
+    free_regs.erase(r);
     assert(s0_offset.contains(r));
     fresh[r] = true;
     ss << (r.f ? ig.fsw(r, s0_offset[r], s0) : ig.sw(r, s0_offset[r], s0));
@@ -514,7 +516,7 @@ void Codegen::call(CallInst *c) {
     if (!c->get_function_type()->get_return_type()->is_void_type()) {
         if (reg_mapping.contains(c)) {
             auto r = reg_mapping.at(c);
-            ss << ig.mv(r, a0);
+            ss << (c->get_type()->is_float_type() ? ig.fmvs(r, fa0) : ig.mv(r, a0));
             ss << ig.sw(a0, s0_offset[r], s0);
             free_regs.erase(r);
             in_use.insert(r);

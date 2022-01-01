@@ -13,6 +13,7 @@
 #include "reg.h"
 #include "instruction.h"
 #include "regalloc.h"
+#include "phi_elim.h"
 
 using namespace std::literals::string_literals;
 
@@ -24,6 +25,7 @@ private:
     const int IMM_MIN = -(1 << 11);     // 0b100000000000;
     Module *m;    // top
     Function *f_; // current function
+    PhiElim pe;
     RegAlloc regalloc;
     std::stringstream ss;
     Instgen ig;
@@ -44,7 +46,7 @@ private:
     size_t fcounter{0}, bbcounter{0};
     std::vector<float> local_floats;
     int stack_size;
-    const Reg sp, s0, ra, zero, a0;
+    const Reg sp, s0, ra, zero, a0, fa0;
 
 public:
     Reg get_temp(bool f = false);

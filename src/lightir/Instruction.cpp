@@ -454,9 +454,22 @@ LoadInst::LoadInst(Type *ty, Value *ptr, BasicBlock *bb)
     set_operand(0, ptr);
 }
 
+LoadInst::LoadInst(Type *ty, Value *ptr)
+    : Instruction(ty, Instruction::load, 1)
+{
+    assert(ptr->get_type()->is_pointer_type());
+    assert(ty == static_cast<PointerType *>(ptr->get_type())->get_element_type());
+    set_operand(0, ptr);
+}
+
 LoadInst *LoadInst::create_load(Type *ty, Value *ptr, BasicBlock *bb)
 {
     return new LoadInst(ty, ptr, bb);
+}
+
+LoadInst *LoadInst::create_load(Type *ty, Value *ptr)
+{
+    return new LoadInst(ty, ptr);
 }
 
 Type *LoadInst::get_load_type() const
