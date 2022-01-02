@@ -1,23 +1,19 @@
 void main(void){
     int i;
-    int j;
-    int a;
     int ret;
-
-    i = 0;
-    a = 2;
-
-    while(i<10000000)
+    
+    i=0;
+    ret=0;
+    while(i<100000000)
     {
-        j = 0;
-
-        while(j<2)
-        {
-            ret = (a*a*a*a*a*a*a*a*a*a)/a/a/a/a/a/a/a/a/a/a;
-            j=j+1;
-        }
+        int x;
+        int y;
+        x=1.0*2.3*1.4;
+        y=3*1.0;
+        ret=(x+y+123)*x/x*x/x*x/x*x;
         i=i+1;
     }
-	output(ret);
+
+    output(ret);
     return ;
 }

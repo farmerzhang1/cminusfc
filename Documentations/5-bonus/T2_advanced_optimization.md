@@ -83,6 +83,7 @@ else{
     x = a_1 + f;
 }
 ```
+参考资料：[GCM_GVN](https://courses.cs.washington.edu/courses/cse501/04wi/papers/click-pldi95.pdf)。
 
 ### Strength Reduction
 

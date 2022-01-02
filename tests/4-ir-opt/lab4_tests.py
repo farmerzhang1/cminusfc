@@ -200,7 +200,7 @@ if __name__ == "__main__":
         root_path = os.path.join(os.path.dirname(script_path),'testcases/ConstPropagation')
         testcases = get_raw_testcases(root_path=root_path)
 
-        exec_files1 = compile_testcases(file_lists=testcases,option='')
+        exec_files1 = compile_testcases(file_lists=testcases,option='-mem2reg')
         results1 = evaluate(file_lists=exec_files1,metric_func=get_execute_time)
 
         exec_files2 = compile_testcases(file_lists=testcases,option='-mem2reg -const-propagation')
@@ -229,7 +229,7 @@ if __name__ == "__main__":
         print("="*10,"LoopInvHoist","="*10)
         root_path = os.path.join(os.path.dirname(script_path),'testcases/LoopInvHoist')
         testcases = get_raw_testcases(root_path=root_path)
-        exec_files1 = compile_testcases(file_lists=testcases,option='')
+        exec_files1 = compile_testcases(file_lists=testcases,option='-mem2reg')
         results1 = evaluate(file_lists=exec_files1,metric_func=get_execute_time)
 
         exec_files2 = compile_testcases(file_lists=testcases,option='-mem2reg -loop-inv-hoist')
