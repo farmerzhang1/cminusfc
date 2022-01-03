@@ -59,7 +59,7 @@ void Codegen::gen_bb(BasicBlock *bb) {
     for (auto instr : bb->get_instructions()) {
         comment(instr->print());
         switch (instr->get_instr_type()) {
-        case Instruction::OpID::ret: fun_epilogue(instr->get_function()); break;
+        case Instruction::OpID::ret: fun_epilogue(instr->get_function(), dynamic_cast<ReturnInst *>(instr)); break;
         case Instruction::OpID::call: call(static_cast<CallInst *>(instr)); break;
         case Instruction::OpID::alloca: break; // already allocated in allocate_stack
         case Instruction::OpID::add:
@@ -109,8 +109,9 @@ void Codegen::gen_bb(BasicBlock *bb) {
 }
 
 void Codegen::save(Reg r) {
+    // if (!f_->has_fcalls()) return;
     free_regs.erase(r);
-    assert(s0_offset.contains(r));
+    assert(s0_offset.contains(r) || !f_->has_fcalls());
     fresh[r] = true;
     ss << (r.f ? ig.fsw(r, s0_offset[r], s0) : ig.sw(r, s0_offset[r], s0));
 }
@@ -119,8 +120,9 @@ void Codegen::load(LoadInst *instr, Value *ptr) {
     int offset = std::numeric_limits<int>::max();
     Value *base{nullptr};
     auto gep_ptr = dynamic_cast<GetElementPtrInst *>(ptr);
+    auto gep_index = gep_ptr ? gep_ptr->get_operand(gep_ptr->get_num_operand() - 1) : nullptr;
     auto alloca_ptr = dynamic_cast<AllocaInst *>(ptr);
-    auto const_int = gep_ptr ? dynamic_cast<ConstantInt *>(gep_ptr->get_operand(gep_ptr->get_num_operand() - 1)) : nullptr;
+    auto const_int = dynamic_cast<ConstantInt *>(gep_index);
     auto global_ptr = dynamic_cast<GlobalVariable *>(ptr);
     GlobalVariable *gep_global_ptr{nullptr};
     if (gep_ptr) base = gep_ptr->get_operand(0);
@@ -145,7 +147,7 @@ void Codegen::load(LoadInst *instr, Value *ptr) {
             } else
                 throw std::runtime_error("instr not in register mapping");
         } else if (global_ptr) {
-            auto addr_temp = get_temp();
+            auto addr_temp = get_temp(false, true);
             ss << ig.la(addr_temp, global_ptr->get_name());
             if (dest_reg) {
                 ss << (f ? ig.flw(dest_reg, 0, addr_temp) : ig.lw(dest_reg, 0, addr_temp));
@@ -153,21 +155,38 @@ void Codegen::load(LoadInst *instr, Value *ptr) {
             } else
                 throw std::runtime_error("instr not in register mapping");
         } else if (gep_global_ptr) {
-            auto addr_temp = get_temp();
+            auto addr_temp = get_temp(false, true);
             ss << ig.la(addr_temp, gep_global_ptr->get_name());
             if (dest_reg) {
                 ss << (f ? ig.flw(dest_reg, 4 * offset, addr_temp) : ig.lw(dest_reg, 4 * offset, addr_temp));
                 save(dest_reg);
             } else
                 throw std::runtime_error("instr not in register mapping");
+        } else if (reg_mapping.contains(base)) {
+            auto addr = reg_mapping[base];
+            if (dest_reg) {
+                ss << (f ? ig.flw(dest_reg, 4 * offset, addr) : ig.lw(dest_reg, 4 * offset, addr));
+                save(dest_reg);
+            } else
+                throw std::runtime_error("instr not in register mapping");
         } else
-            throw std::runtime_error("base pointer not in stack");
+            throw std::runtime_error("load: base pointer not in stack");
     } else {
         if (gep_ptr) {
-            assert(stack_mapping.contains(base));
-            offset = stack_mapping[base] + 16;
-            ss << (f ? ig.flw(dest_reg, offset, reg_mapping.at(ptr)) : ig.lw(dest_reg, offset, reg_mapping.at(ptr)));
-            save(dest_reg);
+            assert((bool)dest_reg);
+            // assert(stack_mapping.contains(base));
+            if (stack_mapping.contains(base)) {
+                offset = stack_mapping[base] + 16;
+                ss << (f ? ig.flw(dest_reg, offset, reg_mapping.at(ptr)) : ig.lw(dest_reg, offset, reg_mapping.at(ptr)));
+                save(dest_reg);
+            } else if (reg_mapping.contains(base)) {
+                auto base_reg = reg_mapping.at(base);
+                auto index_reg = reg_mapping.at(gep_index);
+                ss << ig.slli(index_reg, index_reg, 2);
+                ss << ig.add(base_reg, base_reg, index_reg);
+                ss << (f ? ig.flw(dest_reg, 0, base_reg) : ig.lw(dest_reg, 0, base_reg));
+                fresh[base_reg] = fresh[index_reg] = false;
+            } else throw std::runtime_error("");
         } else
             throw std::runtime_error("non const indexed pointer TODO");
     }
@@ -182,7 +201,8 @@ void Codegen::store(Value *lval, Value *rval) {
     auto alloca_ptr = dynamic_cast<AllocaInst *>(lval);
     auto global_ptr = dynamic_cast<GlobalVariable *>(lval);
     GlobalVariable *gep_global_ptr{nullptr};
-    auto const_int = gep_ptr ? dynamic_cast<ConstantInt *>(gep_ptr->get_operand(gep_ptr->get_num_operand() - 1)) : nullptr;
+    auto gep_index = gep_ptr ? gep_ptr->get_operand(gep_ptr->get_num_operand() - 1) : nullptr;
+    auto const_int = dynamic_cast<ConstantInt *>(gep_index);
     if (gep_ptr)
         base = gep_ptr->get_operand(0);
     if (const_int) {
@@ -203,20 +223,29 @@ void Codegen::store(Value *lval, Value *rval) {
         if (stack_mapping.contains(base)) {
             ss << (f ? ig.fsw(rval_reg, stack_mapping[base] + 4 * offset, s0) : ig.sw(rval_reg, stack_mapping[base] + 4 * offset, s0));
         } else if (global_ptr) {
-            auto addr_temp = get_temp();
+            auto addr_temp = get_temp(false, true);
             ss << ig.la(addr_temp, global_ptr->get_name());
             ss << (f ? ig.fsw(rval_reg, 0, addr_temp) : ig.sw(rval_reg, 0, addr_temp));
         } else if (gep_global_ptr) {
-            auto addr_temp = get_temp();
+            auto addr_temp = get_temp(false, true);
             ss << ig.la(addr_temp, gep_global_ptr->get_name());
             ss << (f ? ig.fsw(rval_reg, 4 * offset, addr_temp) : ig.sw(rval_reg, 4 * offset, addr_temp));
         } else
-            throw std::runtime_error("base pointer not in stack");
+            throw std::runtime_error("store: base pointer not in stack");
     } else {
         if (gep_ptr) {
-            assert(stack_mapping.contains(base));
-            offset = stack_mapping[base] + 16;
-            ss << (f ? ig.fsw(rval_reg, offset, reg_mapping.at(lval)) : ig.sw(rval_reg, offset, reg_mapping.at(lval)));
+            // assert(stack_mapping.contains(base));
+            if (stack_mapping.contains(base)) {
+                offset = stack_mapping[base] + 16;
+                ss << (f ? ig.fsw(rval_reg, offset, reg_mapping.at(lval)) : ig.sw(rval_reg, offset, reg_mapping.at(lval)));
+            } else if (reg_mapping.contains(base)) {
+                auto base_reg = reg_mapping.at(base);
+                auto index_reg = reg_mapping.at(gep_index);
+                ss << ig.slli(index_reg, index_reg, 2);
+                ss << ig.add(base_reg, base_reg, index_reg);
+                ss << (f ? ig.fsw(rval_reg, 0, base_reg) : ig.sw(rval_reg, 0, base_reg));
+                fresh[base_reg] = fresh[index_reg] = false;
+            } else throw std::runtime_error("");
         } else
             throw std::runtime_error("non-const index store TODO");
     }
@@ -225,34 +254,50 @@ void Codegen::store(Value *lval, Value *rval) {
 
 void Codegen::gep(GetElementPtrInst *dest) {
     // 要优美！ ()
+    // gep指令的最后一个操作数，dest = ptr[index]
     auto index = dest->get_operand(dest->get_num_operand() - 1);
     auto const_int = dynamic_cast<ConstantInt *>(index);
-    if (const_int) return; // 如果index是常数，在store中处理(ld/sd的base寄存器为s0, or it's global variable)
-    auto ptr = dest->get_operand(0);
-    if (reg_mapping.contains(ptr)) {
-        // probably allocated in arguments ?
-    } else if (stack_mapping.contains(ptr)) {
-        if (reg_mapping.contains(index)) {
-            auto index_reg = reg_mapping.at(index);
-            auto dest_reg = reg_mapping[dest];
-            if (dest_reg) {
-                ss << ig.slli(dest_reg, index_reg, 2);
-                auto temp = get_temp();
-                ss << ig.addi(temp, s0, -16); // TODO: why minus 16?
-                ss << ig.add(dest_reg, dest_reg, temp);
-            } else
-                throw std::runtime_error("dest not in reg: gep");
+    if (const_int) return;           // 如果index是常数，在store中处理(ld/sd的base寄存器为s0, or it's global variable)
+    auto ptr = dest->get_operand(0); // might be: 1. alloca [10 x i32] 2. i32*, 但是我们不需要这个，在这里
+    auto index_reg = reg_mapping[index];
+    auto &dest_reg = reg_mapping[dest];
+    if (index_reg) {
+        if (dest_reg) {
+            dest_reg.d = true;
+            ss << ig.slli(dest_reg, index_reg, 2);
+            auto temp = get_temp();
+            ss << ig.addi(temp, s0, -16); // TODO: why minus 16?
+            ss << ig.add(dest_reg, dest_reg, temp);
         } else
-            throw std::runtime_error("index not in reg: gep");
+            throw std::runtime_error("dest not in reg: gep");
     } else
-        throw std::runtime_error("ptr not in reg/stack: gep");
+        throw std::runtime_error("index not in reg: gep");
+    // if (reg_mapping.contains(ptr)) {
+    //     // probably allocated in arguments ?
+    //     if (index_reg) {
+    //     }
+    //     // throw std::runtime_error("gep: pointer allocated in register");
+    // } else if (stack_mapping.contains(ptr)) {
+    //     if (index_reg) {
+    //         if (dest_reg) {
+    //             dest_reg.d = true;
+    //             ss << ig.slli(dest_reg, index_reg, 2);
+    //             auto temp = get_temp();
+    //             ss << ig.addi(temp, s0, -16); // TODO: why minus 16?
+    //             ss << ig.add(dest_reg, dest_reg, temp);
+    //         } else
+    //             throw std::runtime_error("dest not in reg: gep");
+    //     } else
+    //         throw std::runtime_error("index not in reg: gep");
+    // } else
+    //     throw std::runtime_error("ptr not in reg/stack: gep");
 }
 
 void Codegen::branch(BranchInst *branch) {
     if (branch->is_cond_br()) {
         auto cond = branch->get_operand(0);
-        auto trueBB = dynamic_cast<BasicBlock*>(branch->get_operand(1));
-        auto falseBB = dynamic_cast<BasicBlock*>(branch->get_operand(2));
+        auto trueBB = dynamic_cast<BasicBlock *>(branch->get_operand(1));
+        auto falseBB = dynamic_cast<BasicBlock *>(branch->get_operand(2));
         if (reg_mapping.contains(cond)) {
             ss << ig.bnez(reg_mapping[cond], bbmap[trueBB]);
             ss << ig.j(bbmap[falseBB]);
@@ -466,7 +511,14 @@ void Codegen::fun_prologue(Function *f) {
         push_caller_saved_regs();
 }
 
-void Codegen::fun_epilogue(Function *f) {
+void Codegen::fun_epilogue(Function *f, ReturnInst *ret) {
+    if (!ret->is_void_ret()) {
+        auto ret_val = ret->get_operand(0);
+        auto f = ret_val->get_type()->is_float_type();
+        auto dest_reg = reg_mapping.contains(ret_val) ? reg_mapping[ret_val] : get_temp(f);
+        assign(dest_reg, ret_val);
+        ss << (f ? ig.fmvs(fa0, dest_reg) : ig.mv(a0, dest_reg));
+    }
     comment("fun_epilogue");
     if (f->has_fcalls()) {
         ss << ig.ld(ra, stack_size - 8, sp);
@@ -502,10 +554,13 @@ void Codegen::call(CallInst *c) {
     // prepare for arguments
     for (auto i = 1; i < c->get_num_operand(); i++) {
         auto arg = c->get_operand(i);
-        if (arg->get_type()->is_integer_type()) {
+        if (!arg->get_type()->is_float_type()) {
             free_regs.erase(args[int_arg_counter]);
-            assign(args[int_arg_counter++], arg);
-        } else if (arg->get_type()->is_float_type()) {
+            // args[int_arg_counter].d = true;
+            auto reg = args[int_arg_counter++];
+            if (arg->get_type()->is_pointer_type()) reg.d = true;
+            assign(reg, arg);
+        } else /* if (arg->get_type()->is_float_type()) */ {
             free_regs.erase(args[fl_arg_counter]);
             assign(fargs[fl_arg_counter++], arg);
         }
@@ -517,7 +572,7 @@ void Codegen::call(CallInst *c) {
         if (reg_mapping.contains(c)) {
             auto r = reg_mapping.at(c);
             ss << (c->get_type()->is_float_type() ? ig.fmvs(r, fa0) : ig.mv(r, a0));
-            ss << ig.sw(a0, s0_offset[r], s0);
+            ss << (c->get_type()->get_size() <= 4 ? ig.sw(a0, s0_offset[r], s0) : ig.sd(a0, s0_offset[r], s0));
             free_regs.erase(r);
             in_use.insert(r);
             fresh[r] = true;
@@ -531,6 +586,7 @@ void Codegen::call(CallInst *c) {
 
 void Codegen::assign(Reg dst, Value *v) {
     auto g = dynamic_cast<GlobalVariable *>(v);
+    auto gep = dynamic_cast<GetElementPtrInst *>(v);
     if (v->get_name().empty()) { // constant (i suppose)
         auto i = dynamic_cast<ConstantInt *>(v);
         auto f = dynamic_cast<ConstantFP *>(v);
@@ -552,6 +608,9 @@ void Codegen::assign(Reg dst, Value *v) {
             ss << ig.lla(temp, ".LC" + std::to_string(local_floats.size() - 1));
             ss << ig.flw(dst, 0, temp);
         }
+    } else if (gep) {
+        // assume gep没有偏移量
+        ss << ig.addi(dst, s0, stack_mapping[gep->get_operand(0)]);
     } else if (reg_mapping.contains(v)) {
         auto src_reg = reg_mapping[v];
         if (dst.f) {
@@ -559,6 +618,11 @@ void Codegen::assign(Reg dst, Value *v) {
                 ss << ig.fmvs(dst, src_reg);
             else
                 ss << ig.flw(dst, s0_offset[src_reg], s0);
+        } else if (dst.d) {
+            if (fresh[src_reg])
+                ss << ig.mv(dst, src_reg);
+            else
+                ss << ig.ld(dst, s0_offset[src_reg], s0);
         } else {
             if (fresh[src_reg])
                 ss << ig.mv(dst, src_reg);
@@ -567,7 +631,7 @@ void Codegen::assign(Reg dst, Value *v) {
         }
     } else if (stack_mapping.contains(v)) {
         throw std::runtime_error("stack assign value");
-    }
+    } else throw std::runtime_error("assign???");
 }
 
 void Codegen::gen_local_constants() {
@@ -577,22 +641,27 @@ void Codegen::gen_local_constants() {
     }
 }
 
+// FIXME: call sw or sd according to value size (but should we save value size (4 or 8 bytes) in reg?)
 void Codegen::push_caller_saved_regs() {
     comment("saving caller-saved registers");
     for (auto &[caller_reg, offset] : s0_offset)
         if (fresh[caller_reg]) {
             if (caller_reg.f)
                 ss << ig.fsw(caller_reg, offset, s0);
+            else if (caller_reg.d)
+                ss << ig.sd(caller_reg, offset, s0);
             else
                 ss << ig.sw(caller_reg, offset, s0);
         }
 }
 
-Reg Codegen::get_temp(bool f) {
+Reg Codegen::get_temp(bool f, bool d) {
     assert(!free_regs.empty());
     for (auto r : free_regs)
-        if (r.f == f)
+        if (r.f == f) {
+            r.d = d;
             return r;
+        }
     throw std::runtime_error("no free regs!");
     return Reg(-1);
 }

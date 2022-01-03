@@ -36,12 +36,14 @@ void RegAlloc::pre_allocate_args() {
     int int_arg_counter{0}, fl_arg_counter{0};
     for (auto arg : f_->get_args()) {
         bool used = val2interval.contains(arg);
-        if (arg->get_type()->is_integer_type()) {
-            if (used)
+        if (!arg->get_type()->is_float_type()) {
+            if (used) {
                 available_regs.erase(
                     reg_mappings[arg] = args[int_arg_counter]);
+                if (arg->get_type()->is_pointer_type()) reg_mappings[arg].d = true;
+            }
             int_arg_counter++;
-        } else if (arg->get_type()->is_float_type()) {
+        } else /*  if (arg->get_type()->is_float_type())  */ {
             if (used)
                 available_regs.erase(
                     reg_mappings[arg] = fargs[fl_arg_counter]);
@@ -99,7 +101,7 @@ void RegAlloc::init_func() {
         for (auto instr : bb->get_instructions()) {
             instr_counter++;
             if (instr->is_alloca()) { // alloca 的返回值（指针）已经在栈上了，不需要（没必要？）分配寄存器
-                auto alloca = dynamic_cast<AllocaInst*>(instr);
+                auto alloca = dynamic_cast<AllocaInst *>(instr);
                 auto size = alloca->get_alloca_type()->get_size();
                 stack_size += size;
                 stack_mappings[instr] = -stack_size;

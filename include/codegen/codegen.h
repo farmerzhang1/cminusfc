@@ -49,13 +49,13 @@ private:
     const Reg sp, s0, ra, zero, a0, fa0;
 
 public:
-    Reg get_temp(bool f = false);
+    Reg get_temp(bool f = false, bool d = false);
     Codegen(Module *m);
     std::string gen_module();
     void gen_function(Function *);
     void gen_bb(BasicBlock *);
     void fun_prologue(Function *);
-    void fun_epilogue(Function *);
+    void fun_epilogue(Function *, ReturnInst*);
     void comment(std::string);
     void allocate_stack();
     void call(CallInst *);

@@ -101,7 +101,7 @@ int Type::get_size()
         }
         else
         {
-            return 4;
+            return 8; // backend is riscv-64
         }
     }
     if (this->is_float_type())

@@ -16,22 +16,22 @@ std::string Instgen::add(Reg dst, Reg rs1, Reg rs2) {
 }
 
 std::string Instgen::sd(Reg src, int offset, Reg base) {
-    assert(!src.f);
+    assert(!src.f && !base.f && src.d && base.d);
     return "\tsd " + src.get_name() + "," + std::to_string(offset) + "(" + base.get_name() + ")\n";
 }
 
 std::string Instgen::sw(Reg src, int offset, Reg base) {
-    assert(!src.f);
+    assert(!src.f && !base.f && !src.d && base.d);
     return "\tsw " + src.get_name() + "," + std::to_string(offset) + "(" + base.get_name() + ")\n";
 }
 
 std::string Instgen::ld(Reg dst, int offset, Reg base) {
-    assert(!dst.f);
+    assert(!dst.f && !base.f && dst.d && base.d);
     return "\tld " + dst.get_name() + "," + std::to_string(offset) + "(" + base.get_name() + ")\n";
 }
 
 std::string Instgen::lw(Reg dst, int offset, Reg base) {
-    assert(!dst.f);
+    assert(!dst.f && !base.f && !dst.d && base.d);
     return "\tlw " + dst.get_name() + "," + std::to_string(offset) + "(" + base.get_name() + ")\n";
 }
 

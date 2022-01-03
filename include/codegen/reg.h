@@ -11,27 +11,29 @@ class RegAlloc;
 
 class Reg {
 private:
-    bool f;
+    bool f, d;
     int id;
     static const std::array<std::string, 32> regs;
     static const std::array<std::string, 32> alts;
 
 public:
     // need a constructor that takes no argument
-    Reg(int id = -1, bool f = false) :
-        id(id), f(f) {}
+    Reg(int id = -1, bool f = false, bool d = false) :
+        id(id), f(f), d(d) {}
     Reg(std::string s) :
-        f(false) {
+        f(false), d(true) {
         if (s == "sp"s)
             id = 2;
         else if (s == "ra"s)
             id = 1;
         else if (s == "s0"s)
             id = 8;
-        else if (s == "a0"s)
+        else if (s == "a0"s) {
             id = 10;
-        else if (s == "fa0"s) {
+            d = false;
+        } else if (s == "fa0"s) {
             id = 10;
+            d = false;
             f = true;
         } else
             throw std::runtime_error("invalid string names for reg");
