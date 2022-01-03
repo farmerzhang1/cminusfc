@@ -182,6 +182,8 @@ void Codegen::load(LoadInst *instr, Value *ptr) {
             } else if (reg_mapping.contains(base)) {
                 auto base_reg = reg_mapping.at(base);
                 auto index_reg = reg_mapping.at(gep_index);
+                assign(base_reg, base);
+                assign(index_reg, gep_index);
                 ss << ig.slli(index_reg, index_reg, 2);
                 ss << ig.add(base_reg, base_reg, index_reg);
                 ss << (f ? ig.flw(dest_reg, 0, base_reg) : ig.lw(dest_reg, 0, base_reg));
@@ -241,6 +243,8 @@ void Codegen::store(Value *lval, Value *rval) {
             } else if (reg_mapping.contains(base)) {
                 auto base_reg = reg_mapping.at(base);
                 auto index_reg = reg_mapping.at(gep_index);
+                assign(base_reg, base);
+                assign(index_reg, gep_index);
                 ss << ig.slli(index_reg, index_reg, 2);
                 ss << ig.add(base_reg, base_reg, index_reg);
                 ss << (f ? ig.fsw(rval_reg, 0, base_reg) : ig.sw(rval_reg, 0, base_reg));
@@ -272,25 +276,6 @@ void Codegen::gep(GetElementPtrInst *dest) {
             throw std::runtime_error("dest not in reg: gep");
     } else
         throw std::runtime_error("index not in reg: gep");
-    // if (reg_mapping.contains(ptr)) {
-    //     // probably allocated in arguments ?
-    //     if (index_reg) {
-    //     }
-    //     // throw std::runtime_error("gep: pointer allocated in register");
-    // } else if (stack_mapping.contains(ptr)) {
-    //     if (index_reg) {
-    //         if (dest_reg) {
-    //             dest_reg.d = true;
-    //             ss << ig.slli(dest_reg, index_reg, 2);
-    //             auto temp = get_temp();
-    //             ss << ig.addi(temp, s0, -16); // TODO: why minus 16?
-    //             ss << ig.add(dest_reg, dest_reg, temp);
-    //         } else
-    //             throw std::runtime_error("dest not in reg: gep");
-    //     } else
-    //         throw std::runtime_error("index not in reg: gep");
-    // } else
-    //     throw std::runtime_error("ptr not in reg/stack: gep");
 }
 
 void Codegen::branch(BranchInst *branch) {
@@ -499,6 +484,7 @@ void Codegen::bin_inst(BinaryInst *dest, Instruction::OpID op, bool f) {
 
 void Codegen::fun_prologue(Function *f) {
     comment("fun_prologue");
+    comment(f->get_function_type()->print());
     ss << ig.addi(sp, sp, -stack_size);
     if (f->has_fcalls()) {
         ss << ig.sd(ra, stack_size - 8, sp);
@@ -609,6 +595,7 @@ void Codegen::assign(Reg dst, Value *v) {
             ss << ig.flw(dst, 0, temp);
         }
     } else if (gep) {
+        // FIXME: 传入全局数组
         // assume gep没有偏移量
         ss << ig.addi(dst, s0, stack_mapping[gep->get_operand(0)]);
     } else if (reg_mapping.contains(v)) {
@@ -641,7 +628,6 @@ void Codegen::gen_local_constants() {
     }
 }
 
-// FIXME: call sw or sd according to value size (but should we save value size (4 or 8 bytes) in reg?)
 void Codegen::push_caller_saved_regs() {
     comment("saving caller-saved registers");
     for (auto &[caller_reg, offset] : s0_offset)
