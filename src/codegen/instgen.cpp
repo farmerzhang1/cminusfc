@@ -79,7 +79,7 @@ std::string Instgen::fcvtsw(Reg dst, Reg src) {
 
 std::string Instgen::fcvtws(Reg dst, Reg src) {
     assert(!dst.f && src.f);
-    return "\tfcvt.w.s " + dst.get_name() + "," + src.get_name() + "\n";
+    return "\tfcvt.w.s " + dst.get_name() + "," + src.get_name() + ",rtz" + "\n";
 }
 
 std::string Instgen::fadds(Reg dst, Reg rs1, Reg rs2) {

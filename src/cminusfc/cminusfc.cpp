@@ -137,9 +137,13 @@ int main(int argc, char **argv) {
     output_stream.open(output_asm, std::ios::out);
     output_stream << cg.gen_module();
     output_stream.close();
-    auto rv64_command = "riscv64-linux-gnu-gcc " + output_asm + " " + CMAKE_LIBRARY_OUTPUT_DIRECTORY + "/io.o -o " + target_path;
+    auto rv64_command = "riscv64-unknown-elf-gcc " + output_asm + " " + CMAKE_LIBRARY_OUTPUT_DIRECTORY + "/io.o -o " + target_path;
     // std::cout << rv64_command << std::endl;
-    std::system(rv64_command.c_str());
+    try {
+        std::system(rv64_command.c_str());
+    } catch (const std::exception &e) {
+        std::cerr << e.what() << std::endl;
+    }
     // if (!emit) {
     //     std::string lib = CMAKE_LIBRARY_OUTPUT_DIRECTORY;
     //     auto command_string = "clang -O0 -w "s + target_path + ".ll -o "

@@ -28,7 +28,7 @@ void PhiElim::run() {
                 auto instr = *it;
                 if (instr->is_phi()) {
                     its.push_back(it);
-                    std::cout << instr->print() << std::endl;
+                    // std::cout << instr->print() << std::endl;
                     auto alloca = AllocaInst::create_alloca(instr->get_type(), entry);
                     phi2alloca.insert({dynamic_cast<PhiInst *>(instr), alloca});
                 }

@@ -25,7 +25,7 @@ void RegAlloc::run() {
         init_func();
         pre_allocate_args();
         LinearScanRegisterAllocation();
-        print_stats();
+        // print_stats();
         f_reg_map.insert({f, std::move(reg_mappings)});
         f_stack_map.insert({f, std::move(stack_mappings)});
         f_stack_size.insert({f, stack_size});

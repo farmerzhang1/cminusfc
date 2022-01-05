@@ -87,7 +87,8 @@ public:
         auto TyVoid = Type::get_void_type(module.get());
         auto TyInt32 = Type::get_int32_type(module.get());
         auto TyFloat = Type::get_float_type(module.get());
-
+        auto TyInt32Pointer = Type::get_int32_ptr_type(module.get());
+        auto TyFloatPointer = Type::get_float_ptr_type(module.get());
         auto input_type = FunctionType::get(TyInt32, {});
         auto input_fun =
             Function::create(
@@ -119,12 +120,25 @@ public:
                 neg_idx_except_type,
                 "neg_idx_except",
                 module.get());
-
+        auto output_array_type = FunctionType::get(TyVoid, {TyInt32Pointer, TyInt32});
+        auto output_array_fun =
+            Function::create(
+                output_array_type,
+                "outputArray",
+                module.get());
+        auto output_arrayf_type = FunctionType::get(TyVoid, {TyFloatPointer, TyInt32});
+        auto output_arrayf_fun =
+            Function::create(
+                output_arrayf_type,
+                "outputArrayf",
+                module.get());
         scope.enter();
         scope.push("input", input_fun);
         scope.push("output", output_fun);
         scope.push("outputFloat", output_float_fun);
         scope.push("neg_idx_except", neg_idx_except_fun);
+        scope.push("outputArray", output_array_fun);
+        scope.push("outputArrayf", output_arrayf_fun);
         // static_assert(this->add_int_map.contains(AddOp::OP_PLUS)); // 打咩！ please refer to
         // https://stackoverflow.com/questions/30620356/how-can-i-ensure-that-each-case-defined-in-an-enum-class-is-treated-e-g-using
 

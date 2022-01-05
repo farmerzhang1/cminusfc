@@ -19,3 +19,14 @@ void neg_idx_except() {
     exit(0);
 }
 
+void outputArray(int a[], int len) {
+    printf("[");
+    for (int i = 0; i < len; i++) printf("%d ", a[i]);
+    printf("]\n");
+}
+
+void outputArrayf(float a[], int len) {
+    printf("[ ");
+    for (int i = 0; i < len; i++) printf("%f ", a[i]);
+    printf("]\n");
+}

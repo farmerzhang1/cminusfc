@@ -129,7 +129,7 @@ def eval():
             score = cases[case][0]
             need_input = cases[case][1]
 
-            COMMAND = ['qemu-riscv64', '-L', '/usr/riscv64-linux-gnu/', TEST_PATH]
+            COMMAND = ['qemu-riscv64', TEST_PATH]
 
             try:
                 result = subprocess.run([EXE_PATH, '-mem2reg', TEST_PATH + ".cminus"], stderr=subprocess.PIPE, timeout=1)
