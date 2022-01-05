@@ -188,13 +188,26 @@ void Codegen::load(LoadInst *instr, Value *ptr) {
                 ss << ig.add(base_reg, base_reg, index_reg);
                 ss << (f ? ig.flw(dest_reg, 0, base_reg) : ig.lw(dest_reg, 0, base_reg));
                 fresh[base_reg] = fresh[index_reg] = false;
-            } else throw std::runtime_error("");
+                save(dest_reg);
+            } else {
+                auto addr_temp = get_temp(false, true);
+                assign(addr_temp, ptr);
+                auto index_reg = reg_mapping.at(gep_index);
+                assign(index_reg, gep_index);
+                ss << ig.slli(index_reg, index_reg, 2);
+                ss << ig.add(addr_temp, addr_temp, index_reg);
+                ss << (f ? ig.flw(dest_reg, 0, addr_temp) : ig.lw(dest_reg, 0, addr_temp));
+                fresh[index_reg] = false;
+                save(dest_reg);
+                // throw std::runtime_error("load what???");
+            }
         } else
             throw std::runtime_error("non const indexed pointer TODO");
     }
 }
 // lval is pointer
 void Codegen::store(Value *lval, Value *rval) {
+    // TODO: 把地址的赋值移到assign里完成
     // 如果指针是由常数indexed的，不考虑gep的翻译，直接跳到这
     // auto ptr = lval->get_operand(lval->get_num_operand() - 1);
     int offset = std::numeric_limits<int>::max();
@@ -205,12 +218,12 @@ void Codegen::store(Value *lval, Value *rval) {
     GlobalVariable *gep_global_ptr{nullptr};
     auto gep_index = gep_ptr ? gep_ptr->get_operand(gep_ptr->get_num_operand() - 1) : nullptr;
     auto const_int = dynamic_cast<ConstantInt *>(gep_index);
-    if (gep_ptr)
+    if (gep_ptr) {
         base = gep_ptr->get_operand(0);
-    if (const_int) {
-        // base = gep_ptr->get_operand(0);
-        offset = const_int->get_value();
         gep_global_ptr = dynamic_cast<GlobalVariable *>(base);
+    }
+    if (const_int) {
+        offset = const_int->get_value();
     }
     if (alloca_ptr) {
         base = alloca_ptr;
@@ -249,7 +262,17 @@ void Codegen::store(Value *lval, Value *rval) {
                 ss << ig.add(base_reg, base_reg, index_reg);
                 ss << (f ? ig.fsw(rval_reg, 0, base_reg) : ig.sw(rval_reg, 0, base_reg));
                 fresh[base_reg] = fresh[index_reg] = false;
-            } else throw std::runtime_error("");
+            } else {
+                // std::cout << lval->print() << std::endl;
+                auto addr_temp = get_temp(false, true);
+                assign(addr_temp, lval);
+                auto index_reg = reg_mapping.at(gep_index);
+                assign(index_reg, gep_index);
+                ss << ig.slli(index_reg, index_reg, 2);
+                ss << ig.add(addr_temp, addr_temp, index_reg);
+                ss << (f ? ig.fsw(rval_reg, 0, addr_temp) : ig.sw(rval_reg, 0, addr_temp));
+                // throw std::runtime_error("store what??");
+            }
         } else
             throw std::runtime_error("non-const index store TODO");
     }
@@ -546,8 +569,10 @@ void Codegen::call(CallInst *c) {
             auto reg = args[int_arg_counter++];
             if (arg->get_type()->is_pointer_type()) reg.d = true;
             assign(reg, arg);
+            fresh[reg] = false;
         } else /* if (arg->get_type()->is_float_type()) */ {
-            free_regs.erase(args[fl_arg_counter]);
+            free_regs.erase(fargs[fl_arg_counter]);
+            fresh[fargs[fl_arg_counter]] = false;
             assign(fargs[fl_arg_counter++], arg);
         }
     }
@@ -596,8 +621,13 @@ void Codegen::assign(Reg dst, Value *v) {
         }
     } else if (gep) {
         // FIXME: 传入全局数组
-        // assume gep没有偏移量
-        ss << ig.addi(dst, s0, stack_mapping[gep->get_operand(0)]);
+        auto gep_global_ptr = dynamic_cast<GlobalVariable *>(gep->get_operand(0));
+        if (gep_global_ptr) {
+            ss << ig.la(dst, gep_global_ptr->get_name());
+        } else {
+            // assume gep没有偏移量
+            ss << ig.addi(dst, s0, stack_mapping[gep->get_operand(0)]);
+        }
     } else if (reg_mapping.contains(v)) {
         auto src_reg = reg_mapping[v];
         if (dst.f) {
@@ -618,7 +648,8 @@ void Codegen::assign(Reg dst, Value *v) {
         }
     } else if (stack_mapping.contains(v)) {
         throw std::runtime_error("stack assign value");
-    } else throw std::runtime_error("assign???");
+    } else
+        throw std::runtime_error("assign???");
 }
 
 void Codegen::gen_local_constants() {
@@ -654,22 +685,24 @@ Reg Codegen::get_temp(bool f, bool d) {
 
 void Codegen::fptosi(Value *dest, Value *fval) {
     auto constf = dynamic_cast<ConstantFP *>(fval);
-    Reg freg;
-    if (constf) {
-        freg = get_temp(true);
-        assign(freg, fval);
-    } else if (reg_mapping.contains(fval)) {
-        freg = reg_mapping[fval];
-        // assign(freg, fval);
-    } else if (stack_mapping.contains(fval)) {
-        throw std::runtime_error("fptosi stack");
-    }
+    Reg freg = reg_mapping.contains(fval) ? reg_mapping.at(fval) : get_temp(true);
+    assign(freg, fval);
+    // if (constf) {
+    //     freg = get_temp(true);
+    //     assign(freg, fval);
+    // } else if (reg_mapping.contains(fval)) {
+    //     freg = reg_mapping[fval];
+    //     // assign(freg, fval);
+    // } else if (stack_mapping.contains(fval)) {
+    //     throw std::runtime_error("fptosi stack");
+    // }
 
     if (reg_mapping.contains(dest)) {
         auto dest_reg = reg_mapping[dest];
         ss << ig.fcvtws(dest_reg, freg);
+        ss << ig.sextw(dest_reg, dest_reg);
         save(dest_reg);
-        free_regs.erase(dest_reg);
+        // free_regs.erase(dest_reg);
     } else if (stack_mapping.contains(dest)) {
         throw std::runtime_error("fptosi stack");
     } else {
