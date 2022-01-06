@@ -41,7 +41,6 @@ private:
         Reg(10, true), Reg(11, true), Reg(12, true), Reg(13, true), Reg(14, true), Reg(15, true), Reg(16, true), Reg(17, true), Reg(28, true), Reg(29, true), Reg(30, true), Reg(31, true)};
     const std::set<Reg> callee_saved_regs {Reg(2)};
     std::set<Reg> free_regs; // 对于 free registers，生成riscv64代码的过程中才会逐渐减少 ()
-    std::set<Reg> in_use; // all allocated registers until now (current instruction)
     std::map<Reg, bool> fresh;
     size_t fcounter{0}, bbcounter{0};
     std::vector<float> local_floats;

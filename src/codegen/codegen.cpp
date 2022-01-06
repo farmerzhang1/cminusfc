@@ -583,10 +583,11 @@ void Codegen::call(CallInst *c) {
         if (reg_mapping.contains(c)) {
             auto r = reg_mapping.at(c);
             ss << (c->get_type()->is_float_type() ? ig.fmvs(r, fa0) : ig.mv(r, a0));
-            ss << (c->get_type()->get_size() <= 4 ? ig.sw(a0, s0_offset[r], s0) : ig.sd(a0, s0_offset[r], s0));
-            free_regs.erase(r);
-            in_use.insert(r);
-            fresh[r] = true;
+            // ss << (c->get_type()->get_size() <= 4 ? ig.sw(a0, s0_offset[r], s0) : ig.sd(a0, s0_offset[r], s0));
+            if (c->get_type()->get_size() > 4) r.d = true;
+            save(r);
+            // free_regs.erase(r);
+            // fresh[r] = true;
         } else if (stack_mapping.contains(c))
             ss << ig.sw(a0, stack_mapping[c], sp); // TODO: change to s0
         else
@@ -630,18 +631,19 @@ void Codegen::assign(Reg dst, Value *v) {
         }
     } else if (reg_mapping.contains(v)) {
         auto src_reg = reg_mapping[v];
+        auto a = f_->has_fcalls();
         if (dst.f) {
-            if (fresh[src_reg])
+            if (fresh[src_reg] & !a)
                 ss << ig.fmvs(dst, src_reg);
             else
                 ss << ig.flw(dst, s0_offset[src_reg], s0);
         } else if (dst.d) {
-            if (fresh[src_reg])
+            if (fresh[src_reg] & !a)
                 ss << ig.mv(dst, src_reg);
             else
                 ss << ig.ld(dst, s0_offset[src_reg], s0);
         } else {
-            if (fresh[src_reg])
+            if (fresh[src_reg] & !a)
                 ss << ig.mv(dst, src_reg);
             else
                 ss << ig.lw(dst, s0_offset[src_reg], s0);
