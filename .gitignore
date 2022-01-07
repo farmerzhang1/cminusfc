@@ -6,3 +6,5 @@ infer-out/
 *.dot
 *.json
 *.s
+test
+test.*
