@@ -11,6 +11,7 @@
       - [整形常数](#整形常数)
       - [单精度浮点数](#单精度浮点数)
       - [指针](#指针)
+    - [算术指令](#算术指令)
   - [测试](#测试)
     - [环境](#环境)
     - [自动测试](#自动测试)
@@ -62,10 +63,69 @@ TODO
 寄存器分配采用线性扫描算法，针对risc-v架构做了特定修改。
 ### 寄存器 Reg 类
 TODO
+```cpp
+class Reg {
+private:
+    bool f, d;
+    int id;
+}
+```
+id表示寄存器编号，从0到31.
+由于加入了单精度浮点数的拓展，需要有一个flag `f`表示是否为浮点数寄存器；
+
+而flag `d`表示该寄存器实例是否为64位（地址为64位，使用访问栈中内存使用`sd&ld`而不是`sw&lw`）
+
+为方便检测该寄存器是否合法（不合法时 id 为 -1），加入一个 operator bool() 函数
+```cpp
+explicit operator bool() const { return id != -1; }
+```
 ### Interval 构造
-TODO
+```cpp
+struct interval {
+    point start, end; // both inclusive
+    Value *val;
+};
+```
+interval为一段闭区间，在线性扫描过程中存储在active和intervals两个`std::set`中，分别以*increasing end point*和*increasing start point*进行排序；其中，基本块的顺序为深度优先序。
+```cpp
+void RegAlloc::dfs(BasicBlock *s) {
+    visited[s] = true;
+    for (auto suc : s->get_succ_basic_blocks()) {
+        if (!visited[suc]) dfs(suc);
+    }
+    int2bb[c] = s;
+    bb2int[s] = c--;
+}
+...
+c = f_->get_num_basic_blocks();
+dfs(f_->get_entry_block());
+```
 ### 线性扫描
-TODO
+
+线性扫描寄存器分配参考该算法经典论文，分别实现`LinearScanRegisterAllocation`, `ExpireOldIntervals`, `SpillAtInterval` 几个函数。
+
+而为了考虑固定分配在`a0`, `a1`等在寄存器上传递的函数参数，需要在线性扫描开始前进行预分配
+```cpp
+for (auto arg : f_->get_args()) {
+    bool used = !arg->get_use_list().empty();
+    if (!arg->get_type()->is_float_type()) {
+        if (used) {
+            available_regs.erase(
+                reg_mappings[arg] = args[int_arg_counter]);
+            if (arg->get_type()->is_pointer_type()) reg_mappings[arg].d = true;
+        }
+        int_arg_counter++;
+    }
+    else {
+      ...
+    }
+}
+```
+并在整个扫描的流程中考虑该interval是否已分配过寄存器
+```cpp
+// for (auto i : intervals)
+  if (pre_allocated(i)) continue;
+```
 ## RISCV64 代码生成
 TODO
 构造一个 Codegen 类，传入 Module 指针，以下介绍各个后端代码生成的函数
@@ -97,6 +157,7 @@ void Codegen::gen_local_constants() {
 ```
 #### 指针
 TODO
+### 算术指令
 
 ## 测试
 ### 环境
@@ -127,7 +188,7 @@ total points: 94
 ## Future Works
 a lot
 ## 参考文献
-1. linear scan 那篇
-2. rv64 gdb和qemu的联合debug
-3. riscv-spec
+1. Massimiliano Poletto and Vivek Sarkar. 1999. Linear scan register allocation. <i>ACM Trans. Program. Lang. Syst.</i> 21, 5 (Sept. 1999), 895–913. DOI: https://doi.org/10.1145/330249.330250
+2. RISC-V BYTES: CROSS-PLATFORM DEBUGGING WITH QEMU AND GDB, url: https://danielmangum.com/posts/risc-v-bytes-qemu-gdb/
+3. “The RISC-V Instruction Set Manual, Volume I: User-Level ISA, Document Version 20191213”, Editors Andrew Waterman and Krste Asanovi´c, RISC-V Foundation, December 2019
 4. 2020 年全国大学生计算机系统能力大赛编译系统设计赛项目，[燃烧我的编译器](https://github.com/mlzeng/CSC2020-USTC-FlammingMyCompiler)
