@@ -56,7 +56,7 @@ void RegAlloc::LinearScanRegisterAllocation() {
     for (auto i : intervals) {
         ExpireOldIntervals(i);
         if (pre_allocated(i)) continue;
-        if (active.size() == regs.size())
+        if (active.size() == regs.size() + fregs.size())
             SpillAtInterval(i);
         else {
             assign_reg(i);
@@ -71,6 +71,19 @@ bool RegAlloc::pre_allocated(ip &interval) {
     return false;
 }
 
+void RegAlloc::dfs(BasicBlock *s) {
+    // 应该改为深度优先后序遍历的reverse （？
+    // Another is depth-first ordering,
+    // the reverse of the order in which nodes are
+    // last visited in a preorder traversal of the flow graph
+    // 参考 aho et al p 662 Depth-first search algorithm
+    visited[s] = true;
+    for (auto suc : s->get_succ_basic_blocks()) {
+        if (!visited[suc]) dfs(suc);
+    }
+    int2bb[c] = s;
+    bb2int[s] = c--;
+}
 void RegAlloc::init_func() {
     int i{0};
     reg_mappings.clear();
@@ -85,10 +98,14 @@ void RegAlloc::init_func() {
     for (auto fa : fargs) available_regs.insert(fa);
     int2bb.clear();
     bb2int.clear();
-    for (auto bb : f_->get_basic_blocks()) {
-        int2bb[i] = bb;
-        bb2int[bb] = i++;
-    }
+    visited.clear();
+    c = f_->get_num_basic_blocks();
+    for (auto bb : f_->get_basic_blocks()) visited[bb] = false;
+    dfs(f_->get_entry_block());
+    // for (auto bb : f_->get_basic_blocks()) {
+    //     int2bb[i] = bb;
+    //     bb2int[bb] = i++;
+    // }
     int bbcounter = 0;
     int instr_counter = 0;
     for (auto arg : f_->get_args()) {
@@ -96,7 +113,8 @@ void RegAlloc::init_func() {
         val2interval.insert({arg, std::make_shared<interval>(arg, 0, 0, 0, 0)});
     }
     for (auto bb : f_->get_basic_blocks()) {
-        bbcounter++; // first bb is entry
+        // bbcounter++; // first bb is entry
+        bbcounter = bb2int.at(bb);
         instr_counter = 0;
         for (auto instr : bb->get_instructions()) {
             instr_counter++;

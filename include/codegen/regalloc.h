@@ -42,8 +42,9 @@ private:
     using ip = std::shared_ptr<interval>; // shared interval pointer
     Module *m_;
     Function *f_;
-    int stack_size{0};
+    int stack_size{0}, c;
     std::map<BasicBlock *, int> bb2int;
+    std::map<BasicBlock *, bool> visited;
     std::map<int, BasicBlock *> int2bb;
     // TODO: check registers that can be allocated
     const std::set<Reg> regs{Reg(5), Reg(6), Reg(7), Reg(28), Reg(29), Reg(30), Reg(31)};
@@ -88,5 +89,6 @@ public:
     void run();
     bool pre_allocated(ip &);
     void pre_allocate_args();
+    void dfs(BasicBlock *);
 };
 #endif
