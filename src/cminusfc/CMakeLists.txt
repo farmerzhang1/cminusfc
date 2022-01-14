@@ -13,7 +13,6 @@ add_executable(
     # builder_ta.cpp
     cminusf_builder.cpp
     utils.cpp
-    utils.hpp
 )
 
 target_link_libraries(
