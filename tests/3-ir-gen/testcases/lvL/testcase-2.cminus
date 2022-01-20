@@ -1,0 +1,19 @@
+void main(void){
+    int i;
+    int ret;
+    
+    i=0;
+    ret=0;
+    while(i<100000000)
+    {
+        int x;
+        int y;
+        x=1.0*2.3*1.4;
+        y=3*1.0;
+        ret=(x+y+123)*x/x*x/x*x/x*x;
+        i=i+1;
+    }
+
+    output(ret);
+    return ;
+}

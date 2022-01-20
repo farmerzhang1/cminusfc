@@ -100,12 +100,47 @@ lv3 = {
     "complex4": (3, False),
 }
 
+lvA = {
+    "testcase-1": (3, False),
+    "testcase-3": (3, False),
+    "testcase-5": (3, False),
+    "testcase-7": (3, False),
+    "testcase-2": (3, False),
+    "testcase-4": (3, False),
+    "testcase-6": (3, False)
+}
+
+lvC = {
+    "testcase-1": (3, False),
+    "testcase-3": (3, False),
+    "testcase-5": (3, False),
+    "testcase-7": (3, False),
+    "testcase-2": (3, False),
+    "testcase-4": (3, False),
+    "testcase-6": (3, False),
+    "testcase-8": (3, False)
+}
+
+lvL = {
+    "testcase-1": (3, False),
+    "testcase-3": (3, False),
+    "testcase-5": (3, False),
+    "testcase-7": (3, False),
+    "testcase-2": (3, False),
+    "testcase-4": (3, False),
+    "testcase-6": (3, False),
+    "testcase-8": (3, False)
+}
+
 suite = [
     ("lv0_1", lv0_1, 0),
     ("lv0_2", lv0_2, 0),
     ("lv1", lv1, 0),
     ("lv2", lv2, 0),
-    ("lv3", lv3, 0)
+    ("lv3", lv3, 0),
+    ("lab4-active-vars", lvA, 0),
+    ("lab4-constant-propagation", lvC, 0),
+    ("lab4-loop-inv-hoist", lvL, 0)
 ]
 
 
@@ -132,7 +167,8 @@ def eval():
             COMMAND = ['qemu-riscv64', TEST_PATH]
 
             try:
-                result = subprocess.run([EXE_PATH, '-mem2reg', TEST_PATH + ".cminus"], stderr=subprocess.PIPE, timeout=1)
+                result = subprocess.run(
+                    [EXE_PATH, '-mem2reg', TEST_PATH + ".cminus"], stderr=subprocess.PIPE, timeout=1)
             except Exception as _:
                 f.write('\tFail\n')
                 continue
@@ -144,7 +180,8 @@ def eval():
                         input_option = fin.read()
 
                 try:
-                    result = subprocess.run(COMMAND, input=input_option, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=1)
+                    result = subprocess.run(
+                        COMMAND, input=input_option, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=1)
                     with open(ANSWER_PATH + ".out", "rb") as fout:
                         if result.stdout == fout.read():
                             f.write('\tSuccess\n')
