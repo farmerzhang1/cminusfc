@@ -8,7 +8,10 @@ RegAlloc::RegAlloc(Module *m) :
 
 void RegAlloc::print_stats() {
     std::cout << f_->get_name() << std::endl
-              << "regs" << std::endl;
+              << "bbs" << std::endl;
+    for (auto [i, bb] : int2bb)
+        std::cout << bb->get_name() << ": " << i << std::endl;
+    std::cout << "regs" << std::endl;
     for (auto [k, v] : reg_mappings) {
         std::cout << k->get_name() << ": " << v.get_name() << std::endl;
     }
@@ -112,9 +115,9 @@ void RegAlloc::init_func() {
         if (arg->get_use_list().empty()) continue;
         val2interval.insert({arg, std::make_shared<interval>(arg, 0, 0, 0, 0)});
     }
-    for (auto bb : f_->get_basic_blocks()) {
+    for (auto [bbcounter, bb] : int2bb) {
         // bbcounter++; // first bb is entry
-        bbcounter = bb2int.at(bb);
+        // bbcounter = bb2int.at(bb);
         instr_counter = 0;
         for (auto instr : bb->get_instructions()) {
             instr_counter++;

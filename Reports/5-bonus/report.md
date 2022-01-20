@@ -18,3 +18,22 @@ while(i < high - 1)
 k = minloc(a, i, high)
 ```
 中， `fa0` 被赋给 `sitofp i`, 原本的 `high` 值被抹掉
+### linear scan
+不知道为什么把线性扫描的bb顺序改成按int2bb就好了很多神秘bug，明明加入intervals的排序是intervalLess啊（？？？）
+
+还有complex4.cminus, 这个的问题是
+```c
+while (i >= 0) {
+    temp = get(equ, i, var, varone);
+    j = i + 1;
+    while (j < var) {
+        if (1 - isZero(get(equ, i, j, varone)))
+            temp = temp - get(equ, i, j, varone) * vars[j];
+        j = j + 1;
+    }
+    vars[i] = temp / get(equ, i, i, varone);
+    i = i - 1;
+}
+```
+
+`varone`在倒二行就结束了，然后我的寄存器分配把分给varone的寄存器分给了下一行的`i-1`，但是循环还在呢

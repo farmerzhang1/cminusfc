@@ -13,7 +13,6 @@ PhiElim::PhiElim(Module *m) :
     m(m) {}
 
 void PhiElim::run() {
-    // TODO
     std::vector<std::list<Instruction *>::iterator> its;
     for (auto f : m->get_functions()) {
         if (f->get_basic_blocks().empty()) continue;
@@ -52,7 +51,6 @@ void PhiElim::run() {
                 auto store = StoreInst::create_store(val, alloca, bb);
                 bb->add_instruction(bb_term);
             }
-            auto &bb = phi->get_parent()->get_instructions();
         }
     }
     auto output_file = "phi_elimination.ll"s;

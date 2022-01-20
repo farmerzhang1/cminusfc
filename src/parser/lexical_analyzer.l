@@ -80,6 +80,7 @@ return { routine (yytext); return RETURN; }
      return INTEGER;
 }
 \/\*([^*]|[\r\n]|(\*+([^*/]|[\r\n])))*\*+\/ { comments (yytext); }
+\/\/.* {comments (yytext); }
 [ \t\r] { pos_start = pos_end; pos_end += strlen(yytext); }
 . { pos_start = pos_end; pos_end++; printf("'.' :\t%s\n",yytext); }
 

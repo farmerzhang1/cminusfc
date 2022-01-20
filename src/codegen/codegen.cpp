@@ -102,7 +102,7 @@ void Codegen::gen_bb(BasicBlock *bb) {
             load(dynamic_cast<LoadInst *>(instr), instr->get_operand(0));
             break;
         case Instruction::OpID::phi:
-            throw std::runtime_error("phi是不是要加指令到原来的bb啊，你完蛋了");
+            break;
         default: throw std::runtime_error(instr->get_instr_op_name() + " not implemented!");
         }
     }
@@ -260,6 +260,7 @@ void Codegen::store(Value *lval, Value *rval) {
                 assign(index_reg, gep_index);
                 ss << ig.slli(index_reg, index_reg, 2);
                 ss << ig.add(base_reg, base_reg, index_reg);
+                assign(rval_reg, rval);
                 ss << (f ? ig.fsw(rval_reg, 0, base_reg) : ig.sw(rval_reg, 0, base_reg));
                 fresh[base_reg] = fresh[index_reg] = false;
             } else {
@@ -289,6 +290,7 @@ void Codegen::gep(GetElementPtrInst *dest) {
     auto index_reg = reg_mapping[index];
     auto &dest_reg = reg_mapping[dest];
     if (index_reg) {
+        assign(index_reg, index);
         if (dest_reg) {
             dest_reg.d = true;
             ss << ig.slli(dest_reg, index_reg, 2);
@@ -362,7 +364,7 @@ void Codegen::icmp(CmpInst *dest, Value *lhs, Value *rhs) {
             ss << ig.snez(dest_reg, dest_reg);
             break;
         }
-        save(dest_reg);
+        // save(dest_reg); // do we need to save???
     } else
         throw std::runtime_error("stack mapping icmp");
 }
@@ -643,7 +645,7 @@ void Codegen::assign(Reg dst, Value *v) {
             else
                 ss << ig.ld(dst, s0_offset[src_reg], s0);
         } else {
-            if (fresh[src_reg] & !a)
+            if (fresh[src_reg] & !a || v->get_type()->get_size() == 1)
                 ss << ig.mv(dst, src_reg);
             else
                 ss << ig.lw(dst, s0_offset[src_reg], s0);
@@ -653,7 +655,7 @@ void Codegen::assign(Reg dst, Value *v) {
     } else
         throw std::runtime_error("assign???");
 }
-
+// TODO: change to '.word', not '.float'
 void Codegen::gen_local_constants() {
     for (auto i = 0; i < local_floats.size(); i++) {
         ss << ".LC" << i << ":\n";
