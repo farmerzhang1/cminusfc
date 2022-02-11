@@ -109,10 +109,10 @@ void Codegen::gen_bb(BasicBlock *bb) {
 }
 
 void Codegen::save(Reg r) {
-    // if (!f_->has_fcalls()) return;
     free_regs.erase(r);
     assert(s0_offset.contains(r) || !f_->has_fcalls());
     fresh[r] = true;
+    if (!f_->has_fcalls()) return;
     ss << (r.f ? ig.fsw(r, s0_offset[r], s0) : ig.sw(r, s0_offset[r], s0));
 }
 
@@ -596,6 +596,7 @@ void Codegen::call(CallInst *c) {
             // can we add static_assert ? (i guess not)
             throw std::runtime_error("why is this call not (in register or in stack)?");
     }
+    // TODO: 恢复 寄存器（传递参数时，原本的value被覆盖掉了）
 }
 
 void Codegen::assign(Reg dst, Value *v) {
@@ -634,6 +635,8 @@ void Codegen::assign(Reg dst, Value *v) {
     } else if (reg_mapping.contains(v)) {
         auto src_reg = reg_mapping[v];
         auto a = f_->has_fcalls();
+        // auto a = false;
+        if (src_reg == dst && fresh[src_reg] && !a) return;
         if (dst.f) {
             if (fresh[src_reg] & !a)
                 ss << ig.fmvs(dst, src_reg);

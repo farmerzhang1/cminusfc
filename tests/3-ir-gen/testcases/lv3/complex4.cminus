@@ -79,6 +79,7 @@ int gauss(float vars[], float equ[], int var) {
             j = j + 1;
         }
         vars[i] = temp / get(equ, i, i, varone);
+        // 
         i = i - 1;
     }
     return 0;
